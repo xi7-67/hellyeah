@@ -66,7 +66,16 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "duration",
         "onCoverImageDownloaded",
         "QNetworkReply*",
-        "reply"
+        "reply",
+        "onFavoriteToggled",
+        "track",
+        "isFavorite",
+        "onDownloadFinished",
+        "trackId",
+        "filePath",
+        "onHomeClicked",
+        "onFavoriteCardClicked",
+        "onFavoriteCoverDownloaded"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -118,6 +127,24 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SlotData<void(QNetworkReply *)>(24, 2, QMC::AccessPrivate, QMetaType::Void, {{
             { 0x80000000 | 25, 26 },
         }}),
+        // Slot 'onFavoriteToggled'
+        QtMocHelpers::SlotData<void(const QJsonObject &, bool)>(27, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 13, 28 }, { QMetaType::Bool, 29 },
+        }}),
+        // Slot 'onDownloadFinished'
+        QtMocHelpers::SlotData<void(int, const QString &)>(30, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { QMetaType::Int, 31 }, { QMetaType::QString, 32 },
+        }}),
+        // Slot 'onHomeClicked'
+        QtMocHelpers::SlotData<void()>(33, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onFavoriteCardClicked'
+        QtMocHelpers::SlotData<void(int)>(34, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { QMetaType::Int, 31 },
+        }}),
+        // Slot 'onFavoriteCoverDownloaded'
+        QtMocHelpers::SlotData<void(QNetworkReply *)>(35, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 25, 26 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -155,6 +182,11 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 11: _t->onPositionChanged((*reinterpret_cast<std::add_pointer_t<qint64>>(_a[1]))); break;
         case 12: _t->onDurationChanged((*reinterpret_cast<std::add_pointer_t<qint64>>(_a[1]))); break;
         case 13: _t->onCoverImageDownloaded((*reinterpret_cast<std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 14: _t->onFavoriteToggled((*reinterpret_cast<std::add_pointer_t<QJsonObject>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<bool>>(_a[2]))); break;
+        case 15: _t->onDownloadFinished((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[2]))); break;
+        case 16: _t->onHomeClicked(); break;
+        case 17: _t->onFavoriteCardClicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 18: _t->onFavoriteCoverDownloaded((*reinterpret_cast<std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
         default: ;
         }
     }
@@ -162,6 +194,13 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         switch (_id) {
         default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
         case 13:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 0:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
+            }
+            break;
+        case 18:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
             case 0:
@@ -191,14 +230,14 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 14)
+        if (_id < 19)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 14;
+        _id -= 19;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 14)
+        if (_id < 19)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 14;
+        _id -= 19;
     }
     return _id;
 }

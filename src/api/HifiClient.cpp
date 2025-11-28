@@ -6,14 +6,18 @@ HifiClient::HifiClient(QObject *parent)
   manager = new QNetworkAccessManager(this);
 
   // Multiple API endpoints from tidal-ui config for redundancy
-  apiEndpoints << "https://katze.qqdl.site"
+  apiEndpoints << "https://wolf.qqdl.site"
+               << "https://frankfurt.monochrome.tf"
+               << "https://tidal-api-2.binimum.org"
+               << "https://katze.qqdl.site"
                << "https://triton.squid.wtf"
                << "https://zeus.squid.wtf"
                << "https://phoenix.squid.wtf"
                << "https://shiva.squid.wtf"
                << "https://chaos.squid.wtf"
                << "https://hund.qqdl.site"
-               << "https://wolf.qqdl.site"
+               << "https://vogel.qqdl.site"
+               << "https://maus.qqdl.site"
                << "https://hifi.prigoana.com";
 }
 
