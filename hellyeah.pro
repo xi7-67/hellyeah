@@ -12,6 +12,7 @@ SOURCES += src/main.cpp \
            src/ui/MainWindow.cpp \
            src/ui/TrackItemWidget.cpp \
            src/ui/FavoriteCard.cpp \
+           src/ui/AlbumCard.cpp \
            src/db/DatabaseManager.cpp \
            src/net/DownloadManager.cpp
 
@@ -20,6 +21,7 @@ HEADERS += src/api/HifiClient.hpp \
            src/ui/MainWindow.hpp \
            src/ui/TrackItemWidget.hpp \
            src/ui/FavoriteCard.hpp \
+           src/ui/AlbumCard.hpp \
            src/db/DatabaseManager.hpp \
            src/net/DownloadManager.hpp
 

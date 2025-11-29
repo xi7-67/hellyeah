@@ -1,11 +1,14 @@
 #pragma once
 
+#include <QDateTime>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QNetworkReply>
 #include <QPushButton>
 #include <QScrollArea>
@@ -17,6 +20,7 @@
 #include "../db/DatabaseManager.hpp"
 #include "../net/DownloadManager.hpp"
 #include "../player/AudioPlayer.hpp"
+#include "AlbumCard.hpp"
 #include "FavoriteCard.hpp"
 #include "TrackItemWidget.hpp"
 
@@ -46,8 +50,14 @@ private slots:
   void onHomeClicked();
   void onFavoriteCardClicked(int trackId);
   void onFavoriteCoverDownloaded(QNetworkReply *reply);
+  void onAddAlbumClicked();
+  void onAlbumCardClicked(int albumId);
+  void onAddToAlbumClicked(const QJsonObject &track);
+  void onAlbumDeleteClicked(int albumId);
 
 private:
+  void generateAlbumCoverGrid(int albumId, AlbumCard *card);
+
   HifiClient *hifiClient;
   AudioPlayer *player;
 
@@ -71,6 +81,7 @@ private:
   DownloadManager *downloadManager;
 
   void refreshFavoritesList();
+  void refreshAlbumsList();
 
   // Page navigation
   QStackedWidget *pageStack;
@@ -80,9 +91,19 @@ private:
   QScrollArea *favouritesScrollArea;
   QWidget *favouritesContainer;
   QGridLayout *favouritesGrid;
-  QListWidget *albumsList;
+  QList<FavoriteCard *> favoriteCardsList; // Removed, replaced by below
+  QWidget *albumsContainer;
+  QHBoxLayout *albumsLayout;
+  QPushButton *addAlbumButton;
 
-  QMap<int, FavoriteCard *> favoriteCards; // Track ID -> Card widget
+  QMap<int, AlbumCard *> albumCards;
+  // Album View
+  QWidget *albumPage;
+  QLabel *albumTitleLabel;
+  QListWidget *albumTracksList;
+  int currentAlbumId = -1;
+  QList<FavoriteCard *> favoriteCards; // Track ID -> Card widget
+  QPushButton *backButton;
 
   // Search page widgets
   QWidget *searchPage;

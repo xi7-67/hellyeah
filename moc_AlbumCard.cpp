@@ -1,12 +1,12 @@
 /****************************************************************************
-** Meta object code from reading C++ file 'TrackItemWidget.hpp'
+** Meta object code from reading C++ file 'AlbumCard.hpp'
 **
 ** Created by: The Qt Meta Object Compiler version 69 (Qt 6.10.0)
 **
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
 
-#include "src/ui/TrackItemWidget.hpp"
+#include "src/ui/AlbumCard.hpp"
 #include <QtGui/qtextcursor.h>
 #include <QtCore/qmetatype.h>
 
@@ -17,7 +17,7 @@
 
 #include <QtCore/qxptype_traits.h>
 #if !defined(Q_MOC_OUTPUT_REVISION)
-#error "The header file 'TrackItemWidget.hpp' doesn't include <QObject>."
+#error "The header file 'AlbumCard.hpp' doesn't include <QObject>."
 #elif Q_MOC_OUTPUT_REVISION != 69
 #error "This file was generated using the moc from 6.10.0. It"
 #error "cannot be used with the include files from this version of Qt."
@@ -32,77 +32,79 @@ QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 QT_WARNING_DISABLE_GCC("-Wuseless-cast")
 namespace {
-struct qt_meta_tag_ZN15TrackItemWidgetE_t {};
+struct qt_meta_tag_ZN9AlbumCardE_t {};
 } // unnamed namespace
 
-template <> constexpr inline auto TrackItemWidget::qt_create_metaobjectdata<qt_meta_tag_ZN15TrackItemWidgetE_t>()
+template <> constexpr inline auto AlbumCard::qt_create_metaobjectdata<qt_meta_tag_ZN9AlbumCardE_t>()
 {
     namespace QMC = QtMocConstants;
     QtMocHelpers::StringRefStorage qt_stringData {
-        "TrackItemWidget",
-        "favoriteToggled",
+        "AlbumCard",
+        "clicked",
         "",
-        "isFavorite",
-        "addToAlbumClicked"
+        "albumId",
+        "deleteClicked"
     };
 
     QtMocHelpers::UintData qt_methods {
-        // Signal 'favoriteToggled'
-        QtMocHelpers::SignalData<void(bool)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Bool, 3 },
+        // Signal 'clicked'
+        QtMocHelpers::SignalData<void(int)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 3 },
         }}),
-        // Signal 'addToAlbumClicked'
-        QtMocHelpers::SignalData<void()>(4, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'deleteClicked'
+        QtMocHelpers::SignalData<void(int)>(4, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 3 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
     QtMocHelpers::UintData qt_enums {
     };
-    return QtMocHelpers::metaObjectData<TrackItemWidget, qt_meta_tag_ZN15TrackItemWidgetE_t>(QMC::MetaObjectFlag{}, qt_stringData,
+    return QtMocHelpers::metaObjectData<AlbumCard, qt_meta_tag_ZN9AlbumCardE_t>(QMC::MetaObjectFlag{}, qt_stringData,
             qt_methods, qt_properties, qt_enums);
 }
-Q_CONSTINIT const QMetaObject TrackItemWidget::staticMetaObject = { {
+Q_CONSTINIT const QMetaObject AlbumCard::staticMetaObject = { {
     QMetaObject::SuperData::link<QWidget::staticMetaObject>(),
-    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN15TrackItemWidgetE_t>.stringdata,
-    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN15TrackItemWidgetE_t>.data,
+    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN9AlbumCardE_t>.stringdata,
+    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN9AlbumCardE_t>.data,
     qt_static_metacall,
     nullptr,
-    qt_staticMetaObjectRelocatingContent<qt_meta_tag_ZN15TrackItemWidgetE_t>.metaTypes,
+    qt_staticMetaObjectRelocatingContent<qt_meta_tag_ZN9AlbumCardE_t>.metaTypes,
     nullptr
 } };
 
-void TrackItemWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+void AlbumCard::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    auto *_t = static_cast<TrackItemWidget *>(_o);
+    auto *_t = static_cast<AlbumCard *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
-        case 0: _t->favoriteToggled((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
-        case 1: _t->addToAlbumClicked(); break;
+        case 0: _t->clicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 1: _t->deleteClicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
         default: ;
         }
     }
     if (_c == QMetaObject::IndexOfMethod) {
-        if (QtMocHelpers::indexOfMethod<void (TrackItemWidget::*)(bool )>(_a, &TrackItemWidget::favoriteToggled, 0))
+        if (QtMocHelpers::indexOfMethod<void (AlbumCard::*)(int )>(_a, &AlbumCard::clicked, 0))
             return;
-        if (QtMocHelpers::indexOfMethod<void (TrackItemWidget::*)()>(_a, &TrackItemWidget::addToAlbumClicked, 1))
+        if (QtMocHelpers::indexOfMethod<void (AlbumCard::*)(int )>(_a, &AlbumCard::deleteClicked, 1))
             return;
     }
 }
 
-const QMetaObject *TrackItemWidget::metaObject() const
+const QMetaObject *AlbumCard::metaObject() const
 {
     return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
 }
 
-void *TrackItemWidget::qt_metacast(const char *_clname)
+void *AlbumCard::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_staticMetaObjectStaticContent<qt_meta_tag_ZN15TrackItemWidgetE_t>.strings))
+    if (!strcmp(_clname, qt_staticMetaObjectStaticContent<qt_meta_tag_ZN9AlbumCardE_t>.strings))
         return static_cast<void*>(this);
     return QWidget::qt_metacast(_clname);
 }
 
-int TrackItemWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+int AlbumCard::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = QWidget::qt_metacall(_c, _id, _a);
     if (_id < 0)
@@ -121,14 +123,14 @@ int TrackItemWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 }
 
 // SIGNAL 0
-void TrackItemWidget::favoriteToggled(bool _t1)
+void AlbumCard::clicked(int _t1)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 0, nullptr, _t1);
 }
 
 // SIGNAL 1
-void TrackItemWidget::addToAlbumClicked()
+void AlbumCard::deleteClicked(int _t1)
 {
-    QMetaObject::activate(this, &staticMetaObject, 1, nullptr);
+    QMetaObject::activate<void>(this, &staticMetaObject, 1, nullptr, _t1);
 }
 QT_WARNING_POP

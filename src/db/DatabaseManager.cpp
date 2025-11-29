@@ -47,7 +47,20 @@ void DatabaseManager::initDatabase() {
              "album TEXT, "
              "cover_id TEXT, "
              "file_path TEXT, "
+             "file_path TEXT, "
              "json_data TEXT)");
+
+  query.exec("CREATE TABLE IF NOT EXISTS albums ("
+             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+             "name TEXT, "
+             "cover_id TEXT, "
+             "created_at INTEGER)");
+
+  query.exec("CREATE TABLE IF NOT EXISTS album_tracks ("
+             "album_id INTEGER, "
+             "track_id INTEGER, "
+             "added_at INTEGER, "
+             "PRIMARY KEY (album_id, track_id))");
 }
 
 bool DatabaseManager::addFavorite(const QJsonObject &track) {
@@ -121,4 +134,127 @@ QString DatabaseManager::getFilePath(int trackId) {
     return query.value(0).toString();
   }
   return QString();
+  return QString();
+}
+
+int DatabaseManager::createAlbum(const QString &name) {
+  QSqlQuery query;
+  query.prepare(
+      "INSERT INTO albums (name, created_at) VALUES (:name, :created_at)");
+  query.bindValue(":name", name);
+  query.bindValue(":created_at", QDateTime::currentSecsSinceEpoch());
+
+  if (query.exec()) {
+    return query.lastInsertId().toInt();
+  }
+  qDebug() << "createAlbum error:" << query.lastError();
+  return -1;
+}
+
+QList<QJsonObject> DatabaseManager::getAlbums() {
+  QList<QJsonObject> list;
+  QSqlQuery query(
+      "SELECT id, name, cover_id FROM albums ORDER BY created_at DESC");
+  while (query.next()) {
+    QJsonObject album;
+    album["id"] = query.value(0).toInt();
+    album["title"] = query.value(1).toString();
+
+    // Construct a minimal album object compatible with our UI
+    QJsonObject artistObj;
+    artistObj["name"] = "User Album"; // Placeholder
+    album["artist"] = artistObj;
+
+    // If cover_id is set, use it. Otherwise we might need to fetch it from
+    // first track later. For now, let's leave it empty or use a placeholder if
+    // null.
+    QString coverId = query.value(2).toString();
+    if (!coverId.isEmpty()) {
+      album["cover"] = coverId;
+    }
+
+    list.append(album);
+  }
+  return list;
+}
+
+bool DatabaseManager::addTrackToAlbum(int albumId, const QJsonObject &track) {
+  int trackId = track["id"].toInt();
+
+  // Ensure track is in favorites database (so we can display it later)
+  addFavorite(track);
+
+  // Check if album has a cover, if not, use this track's cover
+  QSqlQuery checkCover;
+  checkCover.prepare("SELECT cover_id FROM albums WHERE id = :album_id");
+  checkCover.bindValue(":album_id", albumId);
+  if (checkCover.exec() && checkCover.next()) {
+    QString currentCover = checkCover.value(0).toString();
+    if (currentCover.isEmpty()) {
+      // Set album cover to this track's cover
+      QString trackCover = track["album"].toObject()["cover"].toString();
+      if (!trackCover.isEmpty()) {
+        QSqlQuery updateCover;
+        updateCover.prepare(
+            "UPDATE albums SET cover_id = :cover WHERE id = :album_id");
+        updateCover.bindValue(":cover", trackCover);
+        updateCover.bindValue(":album_id", albumId);
+        updateCover.exec();
+      }
+    }
+  }
+
+  QSqlQuery query;
+  query.prepare(
+      "INSERT OR IGNORE INTO album_tracks (album_id, track_id, added_at) "
+      "VALUES (:album_id, :track_id, :added_at)");
+  query.bindValue(":album_id", albumId);
+  query.bindValue(":track_id", trackId);
+  query.bindValue(":added_at", QDateTime::currentSecsSinceEpoch());
+
+  return query.exec();
+}
+
+QList<QJsonObject> DatabaseManager::getAlbumTracks(int albumId) {
+  QList<QJsonObject> list;
+  QSqlQuery query;
+  // Join with favorites to get track data.
+  // This assumes tracks in albums MUST be in favorites table.
+  // If we want to support non-favorites in albums, we'd need a separate
+  // 'tracks' table that is a superset of favorites. For simplicity, let's
+  // assume we only show tracks that are in our favorites cache.
+  query.prepare("SELECT f.json_data FROM favorites f "
+                "JOIN album_tracks at ON f.id = at.track_id "
+                "WHERE at.album_id = :album_id "
+                "ORDER BY at.added_at ASC");
+  query.bindValue(":album_id", albumId);
+
+  if (query.exec()) {
+    while (query.next()) {
+      QString jsonStr = query.value(0).toString();
+      QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
+      list.append(doc.object());
+    }
+  }
+  return list;
+}
+
+bool DatabaseManager::deleteAlbum(int albumId) {
+  // First delete all track associations
+  QSqlQuery deleteTracksQuery;
+  deleteTracksQuery.prepare(
+      "DELETE FROM album_tracks WHERE album_id = :album_id");
+  deleteTracksQuery.bindValue(":album_id", albumId);
+  deleteTracksQuery.exec();
+
+  // Then delete the album itself
+  QSqlQuery deleteAlbumQuery;
+  deleteAlbumQuery.prepare("DELETE FROM albums WHERE id = :id");
+  deleteAlbumQuery.bindValue(":id", albumId);
+
+  if (!deleteAlbumQuery.exec()) {
+    qDebug() << "deleteAlbum error:" << deleteAlbumQuery.lastError();
+    return false;
+  }
+  return true;
 }

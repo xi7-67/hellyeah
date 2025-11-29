@@ -75,7 +75,12 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "filePath",
         "onHomeClicked",
         "onFavoriteCardClicked",
-        "onFavoriteCoverDownloaded"
+        "onFavoriteCoverDownloaded",
+        "onAddAlbumClicked",
+        "onAlbumCardClicked",
+        "albumId",
+        "onAddToAlbumClicked",
+        "onAlbumDeleteClicked"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -145,6 +150,20 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SlotData<void(QNetworkReply *)>(35, 2, QMC::AccessPrivate, QMetaType::Void, {{
             { 0x80000000 | 25, 26 },
         }}),
+        // Slot 'onAddAlbumClicked'
+        QtMocHelpers::SlotData<void()>(36, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onAlbumCardClicked'
+        QtMocHelpers::SlotData<void(int)>(37, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { QMetaType::Int, 38 },
+        }}),
+        // Slot 'onAddToAlbumClicked'
+        QtMocHelpers::SlotData<void(const QJsonObject &)>(39, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 13, 28 },
+        }}),
+        // Slot 'onAlbumDeleteClicked'
+        QtMocHelpers::SlotData<void(int)>(40, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { QMetaType::Int, 38 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -187,6 +206,10 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 16: _t->onHomeClicked(); break;
         case 17: _t->onFavoriteCardClicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
         case 18: _t->onFavoriteCoverDownloaded((*reinterpret_cast<std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 19: _t->onAddAlbumClicked(); break;
+        case 20: _t->onAlbumCardClicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 21: _t->onAddToAlbumClicked((*reinterpret_cast<std::add_pointer_t<QJsonObject>>(_a[1]))); break;
+        case 22: _t->onAlbumDeleteClicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
         default: ;
         }
     }
@@ -230,14 +253,14 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 19)
+        if (_id < 23)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 19;
+        _id -= 23;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 19)
+        if (_id < 23)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 19;
+        _id -= 23;
     }
     return _id;
 }

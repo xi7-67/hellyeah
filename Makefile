@@ -58,12 +58,14 @@ SOURCES       = src/main.cpp \
 		src/ui/MainWindow.cpp \
 		src/ui/TrackItemWidget.cpp \
 		src/ui/FavoriteCard.cpp \
+		src/ui/AlbumCard.cpp \
 		src/db/DatabaseManager.cpp \
 		src/net/DownloadManager.cpp moc_HifiClient.cpp \
 		moc_AudioPlayer.cpp \
 		moc_MainWindow.cpp \
 		moc_TrackItemWidget.cpp \
 		moc_FavoriteCard.cpp \
+		moc_AlbumCard.cpp \
 		moc_DatabaseManager.cpp \
 		moc_DownloadManager.cpp
 OBJECTS       = main.o \
@@ -72,6 +74,7 @@ OBJECTS       = main.o \
 		MainWindow.o \
 		TrackItemWidget.o \
 		FavoriteCard.o \
+		AlbumCard.o \
 		DatabaseManager.o \
 		DownloadManager.o \
 		moc_HifiClient.o \
@@ -79,6 +82,7 @@ OBJECTS       = main.o \
 		moc_MainWindow.o \
 		moc_TrackItemWidget.o \
 		moc_FavoriteCard.o \
+		moc_AlbumCard.o \
 		moc_DatabaseManager.o \
 		moc_DownloadManager.o
 DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
@@ -383,6 +387,7 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/ui/MainWindow.hpp \
 		src/ui/TrackItemWidget.hpp \
 		src/ui/FavoriteCard.hpp \
+		src/ui/AlbumCard.hpp \
 		src/db/DatabaseManager.hpp \
 		src/net/DownloadManager.hpp src/main.cpp \
 		src/api/HifiClient.cpp \
@@ -390,6 +395,7 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/ui/MainWindow.cpp \
 		src/ui/TrackItemWidget.cpp \
 		src/ui/FavoriteCard.cpp \
+		src/ui/AlbumCard.cpp \
 		src/db/DatabaseManager.cpp \
 		src/net/DownloadManager.cpp
 QMAKE_TARGET  = hellyeah
@@ -1025,8 +1031,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/qt6/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/api/HifiClient.hpp src/player/AudioPlayer.hpp src/ui/MainWindow.hpp src/ui/TrackItemWidget.hpp src/ui/FavoriteCard.hpp src/db/DatabaseManager.hpp src/net/DownloadManager.hpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/main.cpp src/api/HifiClient.cpp src/player/AudioPlayer.cpp src/ui/MainWindow.cpp src/ui/TrackItemWidget.cpp src/ui/FavoriteCard.cpp src/db/DatabaseManager.cpp src/net/DownloadManager.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/api/HifiClient.hpp src/player/AudioPlayer.hpp src/ui/MainWindow.hpp src/ui/TrackItemWidget.hpp src/ui/FavoriteCard.hpp src/ui/AlbumCard.hpp src/db/DatabaseManager.hpp src/net/DownloadManager.hpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/main.cpp src/api/HifiClient.cpp src/player/AudioPlayer.cpp src/ui/MainWindow.cpp src/ui/TrackItemWidget.cpp src/ui/FavoriteCard.cpp src/ui/AlbumCard.cpp src/db/DatabaseManager.cpp src/net/DownloadManager.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1058,9 +1064,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++1z -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp
+compiler_moc_header_make_all: moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_AlbumCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp
+	-$(DEL_FILE) moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_AlbumCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp
 moc_HifiClient.cpp: src/api/HifiClient.hpp \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
@@ -1076,6 +1082,7 @@ moc_MainWindow.cpp: src/ui/MainWindow.hpp \
 		src/db/DatabaseManager.hpp \
 		src/net/DownloadManager.hpp \
 		src/player/AudioPlayer.hpp \
+		src/ui/AlbumCard.hpp \
 		src/ui/FavoriteCard.hpp \
 		src/ui/TrackItemWidget.hpp \
 		moc_predefs.h \
@@ -1091,6 +1098,11 @@ moc_FavoriteCard.cpp: src/ui/FavoriteCard.hpp \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
 	/usr/lib/qt6/moc $(DEFINES) --include /home/xi/dev/hellyeah/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/xi/dev/hellyeah -I/usr/include/qt6 -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtSql -I/usr/include/qt6/QtCore -I/usr/include/c++/15.2.1 -I/usr/include/c++/15.2.1/x86_64-pc-linux-gnu -I/usr/include/c++/15.2.1/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include -I/usr/local/include -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include-fixed -I/usr/include src/ui/FavoriteCard.hpp -o moc_FavoriteCard.cpp
+
+moc_AlbumCard.cpp: src/ui/AlbumCard.hpp \
+		moc_predefs.h \
+		/usr/lib/qt6/moc
+	/usr/lib/qt6/moc $(DEFINES) --include /home/xi/dev/hellyeah/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/xi/dev/hellyeah -I/usr/include/qt6 -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtSql -I/usr/include/qt6/QtCore -I/usr/include/c++/15.2.1 -I/usr/include/c++/15.2.1/x86_64-pc-linux-gnu -I/usr/include/c++/15.2.1/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include -I/usr/local/include -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include-fixed -I/usr/include src/ui/AlbumCard.hpp -o moc_AlbumCard.cpp
 
 moc_DatabaseManager.cpp: src/db/DatabaseManager.hpp \
 		moc_predefs.h \
@@ -1123,6 +1135,7 @@ main.o: src/main.cpp src/ui/MainWindow.hpp \
 		src/db/DatabaseManager.hpp \
 		src/net/DownloadManager.hpp \
 		src/player/AudioPlayer.hpp \
+		src/ui/AlbumCard.hpp \
 		src/ui/FavoriteCard.hpp \
 		src/ui/TrackItemWidget.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o src/main.cpp
@@ -1139,6 +1152,7 @@ MainWindow.o: src/ui/MainWindow.cpp src/ui/MainWindow.hpp \
 		src/db/DatabaseManager.hpp \
 		src/net/DownloadManager.hpp \
 		src/player/AudioPlayer.hpp \
+		src/ui/AlbumCard.hpp \
 		src/ui/FavoriteCard.hpp \
 		src/ui/TrackItemWidget.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o MainWindow.o src/ui/MainWindow.cpp
@@ -1148,6 +1162,9 @@ TrackItemWidget.o: src/ui/TrackItemWidget.cpp src/ui/TrackItemWidget.hpp
 
 FavoriteCard.o: src/ui/FavoriteCard.cpp src/ui/FavoriteCard.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o FavoriteCard.o src/ui/FavoriteCard.cpp
+
+AlbumCard.o: src/ui/AlbumCard.cpp src/ui/AlbumCard.hpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o AlbumCard.o src/ui/AlbumCard.cpp
 
 DatabaseManager.o: src/db/DatabaseManager.cpp src/db/DatabaseManager.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o DatabaseManager.o src/db/DatabaseManager.cpp
@@ -1169,6 +1186,9 @@ moc_TrackItemWidget.o: moc_TrackItemWidget.cpp
 
 moc_FavoriteCard.o: moc_FavoriteCard.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_FavoriteCard.o moc_FavoriteCard.cpp
+
+moc_AlbumCard.o: moc_AlbumCard.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_AlbumCard.o moc_AlbumCard.cpp
 
 moc_DatabaseManager.o: moc_DatabaseManager.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_DatabaseManager.o moc_DatabaseManager.cpp

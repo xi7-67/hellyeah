@@ -18,6 +18,13 @@ public:
   bool updateFilePath(int trackId, const QString &filePath);
   QString getFilePath(int trackId);
 
+  // Album methods
+  int createAlbum(const QString &name);
+  QList<QJsonObject> getAlbums();
+  bool addTrackToAlbum(int albumId, const QJsonObject &track);
+  QList<QJsonObject> getAlbumTracks(int albumId);
+  bool deleteAlbum(int albumId);
+
 private:
   explicit DatabaseManager(QObject *parent = nullptr);
   ~DatabaseManager();

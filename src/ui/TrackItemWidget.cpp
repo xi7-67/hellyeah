@@ -31,6 +31,23 @@ TrackItemWidget::TrackItemWidget(const QJsonObject &trackData, bool isFavorite,
   layout->addWidget(titleLabel);
   layout->addWidget(artistLabel);
   layout->addStretch();
+
+  // Album button (+ icon)
+  albumButton = new QPushButton(this);
+  albumButton->setText("+");
+  albumButton->setFixedSize(24, 24);
+  albumButton->setFlat(true);
+  albumButton->setCursor(Qt::PointingHandCursor);
+  albumButton->setStyleSheet("QPushButton { color: #888; border: none; "
+                             "font-size: 18px; font-weight: bold; } "
+                             "QPushButton:hover { color: #1DB954; }");
+  albumButton->setToolTip("Add to Album");
+  albumButton->hide();
+
+  connect(albumButton, &QPushButton::clicked, this,
+          [this]() { emit addToAlbumClicked(); });
+
+  layout->addWidget(albumButton);
   layout->addWidget(starButton);
 
   updateStarIcon();
@@ -57,6 +74,7 @@ void TrackItemWidget::setFavorite(bool favorite) {
 void TrackItemWidget::enterEvent(QEnterEvent *event) {
   Q_UNUSED(event);
   starButton->show();
+  albumButton->show();
 }
 
 void TrackItemWidget::leaveEvent(QEvent *event) {
@@ -64,6 +82,7 @@ void TrackItemWidget::leaveEvent(QEvent *event) {
   if (!m_isFavorite) {
     starButton->hide();
   }
+  albumButton->hide();
 }
 
 void TrackItemWidget::updateStarIcon() {
