@@ -1,9 +1,11 @@
 #include "MainWindow.hpp"
 #include <QDebug>
+#include <QKeySequence>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QPainter>
 #include <QPixmap>
+#include <QShortcut>
 #include <QStandardPaths>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -463,12 +465,31 @@ MainWindow::MainWindow(QWidget *parent)
   connect(imageManager, &QNetworkAccessManager::finished, this,
           &MainWindow::onCoverImageDownloaded);
 
-  connect(playPauseButton, &QPushButton::clicked, this,
-          &MainWindow::onPlayPauseClicked);
-
   connect(volumeSlider, &QSlider::valueChanged,
           this, // Changed lambda to method call
           &MainWindow::onVolumeChanged);
+
+  // Keyboard Shortcuts
+  // Spacebar to toggle Play/Pause
+  QShortcut *spaceShortcut = new QShortcut(QKeySequence(Qt::Key_Space), this);
+  connect(spaceShortcut, &QShortcut::activated, this,
+          &MainWindow::onPlayPauseClicked);
+
+  // Media Keys
+  QShortcut *mediaPlayShortcut =
+      new QShortcut(QKeySequence(Qt::Key_MediaPlay), this);
+  connect(mediaPlayShortcut, &QShortcut::activated, this,
+          &MainWindow::onPlayPauseClicked);
+
+  QShortcut *mediaPauseShortcut =
+      new QShortcut(QKeySequence(Qt::Key_MediaPause), this);
+  connect(mediaPauseShortcut, &QShortcut::activated, this,
+          &MainWindow::onPlayPauseClicked);
+
+  QShortcut *mediaToggleShortcut =
+      new QShortcut(QKeySequence(Qt::Key_MediaTogglePlayPause), this);
+  connect(mediaToggleShortcut, &QShortcut::activated, this,
+          &MainWindow::onPlayPauseClicked);
 
   resize(800, 600);
 }
