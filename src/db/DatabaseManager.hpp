@@ -16,7 +16,9 @@ public:
   bool isFavorite(int trackId);
   QList<QJsonObject> getFavorites();
   bool updateFilePath(int trackId, const QString &filePath);
+  bool updateCoverPath(int trackId, const QString &coverPath);
   QString getFilePath(int trackId);
+  QString getCoverPath(int trackId);
 
   // Album methods
   int createAlbum(const QString &name);

@@ -71,6 +71,8 @@ private:
   QSlider *seekSlider;
   QLabel *statusLabel;
   QLabel *coverLabel;
+  QLabel *playerTitleLabel;
+  QLabel *playerArtistLabel;
 
   QNetworkAccessManager *imageManager;
   bool isSeeking = false;

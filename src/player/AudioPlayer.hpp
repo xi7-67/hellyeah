@@ -48,6 +48,7 @@ private:
   ma_sound *sound;
   bool isEngineInitialized;
   bool isSoundInitialized;
+  float m_volume; // Store volume
 
   void initMiniaudio();
   void cleanupMiniaudio();

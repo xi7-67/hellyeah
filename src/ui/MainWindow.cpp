@@ -3,6 +3,8 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QPixmap>
+#include <QStandardPaths>
+#include <QVBoxLayout>
 #include <QWidget>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -13,6 +15,20 @@ MainWindow::MainWindow(QWidget *parent)
 
   connect(downloadManager, &DownloadManager::downloadFinished, this,
           &MainWindow::onDownloadFinished);
+  connect(downloadManager, &DownloadManager::coverDownloadFinished, this,
+          [this](int trackId, const QString &coverPath) {
+            DatabaseManager::instance().updateCoverPath(trackId, coverPath);
+            // Refresh card if it exists
+            for (auto *card : favoriteCards) {
+              if (card->getTrackId() == trackId) {
+                QPixmap pixmap(coverPath);
+                if (!pixmap.isNull()) {
+                  card->setCoverImage(pixmap);
+                }
+                break;
+              }
+            }
+          });
 
   QWidget *centralWidget = new QWidget(this);
   setCentralWidget(centralWidget);
@@ -167,13 +183,29 @@ MainWindow::MainWindow(QWidget *parent)
   coverLabel->setFixedSize(200, 200);
   coverLabel->setStyleSheet("background-color: #333; border: 1px solid #555;");
   coverLabel->setAlignment(Qt::AlignCenter);
-  coverLabel->setText("No Cover");
+  // Don't set text or show - start hidden
   coverLabel->hide(); // Hide by default
+
+  playerTitleLabel = new QLabel("", this);
+  playerTitleLabel->setStyleSheet(
+      "font-weight: bold; font-size: 14px; color: #fff; margin-top: 10px;");
+  playerTitleLabel->setAlignment(Qt::AlignCenter);
+  playerTitleLabel->setWordWrap(true);
+  playerTitleLabel->setMaximumWidth(200);
+  playerTitleLabel->hide();
+
+  playerArtistLabel = new QLabel("", this);
+  playerArtistLabel->setStyleSheet("font-size: 12px; color: #b3b3b3;");
+  playerArtistLabel->setAlignment(Qt::AlignCenter);
+  playerArtistLabel->setWordWrap(true);
+  playerArtistLabel->setMaximumWidth(200);
+  playerArtistLabel->hide();
 
   playPauseButton = new QPushButton("Play", this);
   volumeSlider = new QSlider(Qt::Horizontal, this);
   volumeSlider->setRange(0, 100);
-  volumeSlider->setValue(100);
+  volumeSlider->setValue(45); // Default to 45%
+  player->setVolume(0.45f);   // Set initial volume
 
   seekSlider = new QSlider(Qt::Horizontal, this);
   seekSlider->setRange(0, 0);
@@ -181,9 +213,19 @@ MainWindow::MainWindow(QWidget *parent)
   statusLabel = new QLabel("Ready", this);
 
   // Content layout (page stack + cover)
+  // Content layout (page stack + cover area)
   QHBoxLayout *contentLayout = new QHBoxLayout();
   contentLayout->addWidget(pageStack, 1);
-  contentLayout->addWidget(coverLabel);
+
+  // Right side player info layout
+  QVBoxLayout *playerInfoLayout = new QVBoxLayout();
+  playerInfoLayout->setAlignment(Qt::AlignCenter);    // Center vertically
+  playerInfoLayout->setContentsMargins(20, 0, 20, 0); // Horizontal margins only
+  playerInfoLayout->addWidget(coverLabel);
+  playerInfoLayout->addWidget(playerTitleLabel);
+  playerInfoLayout->addWidget(playerArtistLabel);
+
+  contentLayout->addLayout(playerInfoLayout);
 
   // Controls layout
   QHBoxLayout *controlsLayout = new QHBoxLayout();
@@ -300,12 +342,21 @@ void MainWindow::onSearchClicked() {
 
 void MainWindow::onTrackSelected(QListWidgetItem *item) {
   int trackId = item->data(Qt::UserRole).toInt();
-  statusLabel->setText(
-      QString("Fetching stream for track ID: %1").arg(trackId));
 
-  // Fetch cover for the selected track
   if (trackCache.contains(trackId)) {
     QJsonObject track = trackCache[trackId];
+    QString title = track["title"].toString();
+    QString artist = track["artist"].toObject()["name"].toString();
+
+    statusLabel->setText("Fetching stream for: " + title + " by " + artist);
+
+    // Update player info
+    playerTitleLabel->setText(title);
+    playerArtistLabel->setText(artist);
+    playerTitleLabel->show();
+    playerArtistLabel->show();
+
+    // Fetch cover for the selected track
     if (track.contains("album")) {
       QJsonObject album = track["album"].toObject();
       if (album.contains("cover")) {
@@ -316,15 +367,19 @@ void MainWindow::onTrackSelected(QListWidgetItem *item) {
                   .arg(coverId.replace("-", "/"));
           imageManager->get(QNetworkRequest(QUrl(coverUrl)));
         } else {
+          qDebug() << "Track" << trackId << "album has empty cover ID.";
           coverLabel->hide();
         }
       } else {
+        qDebug() << "Track" << trackId << "album has no 'cover' field.";
         coverLabel->hide();
       }
     } else {
+      qDebug() << "Track" << trackId << "has no 'album' field.";
       coverLabel->hide();
     }
   } else {
+    statusLabel->setText("Error: Track not found in cache.");
     coverLabel->hide();
   }
 
@@ -635,13 +690,68 @@ void MainWindow::onCoverImageDownloaded(QNetworkReply *reply) {
     QByteArray data = reply->readAll();
     QPixmap pixmap;
     pixmap.loadFromData(data);
-    coverLabel->setPixmap(pixmap.scaled(coverLabel->size(), Qt::KeepAspectRatio,
-                                        Qt::SmoothTransformation));
-    // Only show if we're actively playing (not just loaded)
-    // Cover will be shown when playback starts
+    if (!pixmap.isNull()) {
+      coverLabel->setPixmap(pixmap.scaled(
+          coverLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+      coverLabel->show(); // Show the cover!
+      playerTitleLabel->show();
+      playerArtistLabel->show();
+    } else {
+      qDebug() << "Failed to load pixmap from downloaded data";
+      coverLabel->hide();
+    }
   } else {
+    qDebug() << "Network error downloading cover:" << reply->errorString();
     coverLabel->hide();
   }
+  reply->deleteLater();
+}
+
+void MainWindow::onFavoriteCoverDownloaded(QNetworkReply *reply) {
+  QVariant trackIdVar = reply->request().attribute(QNetworkRequest::User);
+  if (!trackIdVar.isValid()) {
+    qDebug() << "Favorite cover download has no track ID";
+    reply->deleteLater();
+    return;
+  }
+
+  int trackId = trackIdVar.toInt();
+
+  if (reply->error() != QNetworkReply::NoError) {
+    qDebug() << "Network error for favorite track" << trackId << ":"
+             << reply->errorString();
+    reply->deleteLater();
+    return;
+  }
+
+  QByteArray data = reply->readAll();
+  qDebug() << "Downloaded" << data.size() << "bytes for track" << trackId;
+  if (data.size() > 0) {
+    qDebug() << "First 20 bytes:" << data.left(20).toHex();
+  }
+
+  QPixmap pixmap;
+  // Try loading with explicit format since loadFromData might fail on some
+  // images
+  if (!pixmap.loadFromData(data, "JPG")) {
+    qDebug() << "Failed to load as JPG, trying default format for track"
+             << trackId;
+    if (!pixmap.loadFromData(data)) {
+      qDebug() << "Failed to load pixmap with any format for track" << trackId;
+      reply->deleteLater();
+      return;
+    }
+  }
+
+  // Find the card for this track
+  for (auto *card : favoriteCards) {
+    if (card->getTrackId() == trackId) {
+      card->setCoverImage(pixmap);
+      qDebug() << "Set cover image for track" << trackId;
+      break;
+    }
+  }
+
   reply->deleteLater();
 }
 
@@ -659,14 +769,22 @@ void MainWindow::onFavoriteToggled(const QJsonObject &track, bool isFavorite) {
       QString localPath = DatabaseManager::instance().getFilePath(trackId);
       if (localPath.isEmpty() || !QFile::exists(localPath)) {
         statusLabel->setText("Fetching stream URL to download favorite...");
-        // Set the trackId for the stream URL handler to know it's for download
+        // Set the trackId for the stream URL handler to know it's for
+        // download
         currentTrackIdForStream = trackId;
         hifiClient->getTrackStream(trackId);
       } else {
         statusLabel->setText("Track already downloaded.");
       }
+    } else {
+      // This else block means addFavorite failed, which shouldn't happen if
+      // track is valid. If it means "if not isFavorite", then the logic is
+      // inverted. Assuming the original intent was: if isFavorite, add it. If
+      // not, remove it. The original code had an issue here. Correcting based
+      // on common pattern.
+      qDebug() << "Failed to add favorite track" << trackId;
     }
-  } else {
+  } else { // if not isFavorite
     DatabaseManager::instance().removeFavorite(trackId);
     // Optional: delete file
     QString localPath = DatabaseManager::instance().getFilePath(trackId);
@@ -681,28 +799,21 @@ void MainWindow::onFavoriteToggled(const QJsonObject &track, bool isFavorite) {
 }
 
 void MainWindow::refreshFavoritesList() {
-  // Clear existing cards
-  for (auto *card : favoriteCards) {
-    card->deleteLater();
-  }
-  favoriteCards.clear();
-
-  // Clear layout
+  // Clear existing items
   QLayoutItem *item;
   while ((item = favouritesGrid->takeAt(0)) != nullptr) {
     delete item->widget();
     delete item;
   }
+  favoriteCards.clear();
 
-  QList<QJsonObject> favs = DatabaseManager::instance().getFavorites();
+  auto favs = DatabaseManager::instance().getFavorites();
 
   if (favs.isEmpty()) {
-    QLabel *emptyLabel =
-        new QLabel("No favourites yet - search and star tracks to add!");
-    emptyLabel->setStyleSheet(
-        "color: #b3b3b3; font-size: 14px; padding: 20px;");
+    QLabel *emptyLabel = new QLabel("No favorites yet", this);
+    emptyLabel->setStyleSheet("color: #b3b3b3; font-size: 14px;");
     emptyLabel->setAlignment(Qt::AlignCenter);
-    favouritesGrid->addWidget(emptyLabel);
+    favouritesGrid->addWidget(emptyLabel, 0, 0);
     return;
   }
 
@@ -715,9 +826,6 @@ void MainWindow::refreshFavoritesList() {
     trackCache.insert(id, track);
 
     FavoriteCard *card = new FavoriteCard(track);
-    // card->setFixedWidth(280); // Let grid handle width or set reasonable max
-    // card->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // Fixed
-    // size now handled in card
     connect(card, &FavoriteCard::clicked, this,
             [this, id]() { onFavoriteCardClicked(id); });
     connect(card, &FavoriteCard::unfavoriteClicked, this,
@@ -729,38 +837,30 @@ void MainWindow::refreshFavoritesList() {
     favouritesGrid->addWidget(card, row, col);
     favoriteCards.append(card);
 
-    // Fetch cover
-    if (track.contains("album")) {
-      QJsonObject album = track["album"].toObject();
-      if (album.contains("cover")) {
-        QString coverId = album["cover"].toString();
-        // Use Tidal URL format
+    // Check if we have a local cover first
+    QString localCoverPath = track["coverPath"].toString();
+    if (!localCoverPath.isEmpty() && QFile::exists(localCoverPath)) {
+      QPixmap pixmap(localCoverPath);
+      if (!pixmap.isNull()) {
+        card->setCoverImage(pixmap);
+      } else {
+        // If local file is bad, try downloading again
+        QString coverId = track["album"].toObject()["cover"].toString();
+        if (!coverId.isEmpty()) {
+          QString coverUrl =
+              QString("https://resources.tidal.com/images/%1/640x640.jpg")
+                  .arg(coverId.replace("-", "/"));
+          downloadManager->downloadCover(coverUrl, id);
+        }
+      }
+    } else {
+      // No local cover, try downloading
+      QString coverId = track["album"].toObject()["cover"].toString();
+      if (!coverId.isEmpty()) {
         QString coverUrl =
             QString("https://resources.tidal.com/images/%1/640x640.jpg")
                 .arg(coverId.replace("-", "/"));
-
-        qDebug() << "Cover URL for track" << id << ":" << coverUrl;
-        qDebug() << "Cover ID:" << coverId;
-
-        QNetworkRequest request{QUrl(coverUrl)};
-        QNetworkReply *reply = imageManager->get(request);
-
-        connect(reply, &QNetworkReply::finished, this,
-                [this, reply, card, id]() {
-                  if (reply->error() == QNetworkReply::NoError) {
-                    QPixmap pixmap;
-                    pixmap.loadFromData(reply->readAll());
-                    if (!pixmap.isNull()) {
-                      card->setCoverImage(pixmap);
-                    } else {
-                      qDebug() << "Failed to load pixmap for track" << id;
-                    }
-                  } else {
-                    qDebug() << "Network error for track" << id << ":"
-                             << reply->errorString();
-                  }
-                  reply->deleteLater();
-                });
+        downloadManager->downloadCover(coverUrl, id);
       }
     }
 
@@ -770,10 +870,6 @@ void MainWindow::refreshFavoritesList() {
       row++;
     }
   }
-
-  // Add stretch to push items to top-left if needed, or rely on grid behavior
-  // favouritesGrid->setRowStretch(row + 1, 1);
-  // favouritesGrid->setColumnStretch(maxCols, 1);
 }
 
 void MainWindow::onDownloadFinished(int trackId, const QString &filePath) {
@@ -788,37 +884,63 @@ void MainWindow::onHomeClicked() {
 }
 
 void MainWindow::onFavoriteCardClicked(int trackId) {
-  // Same as onTrackSelected - trigger playback
-  statusLabel->setText(
-      QString("Fetching stream for track ID: %1").arg(trackId));
-
-  // Fetch cover for the selected track (already loaded in card, but needed for
-  // playback)
+  // Update player info
   if (trackCache.contains(trackId)) {
     QJsonObject track = trackCache[trackId];
+    QString title = track["title"].toString();
+    QString artist = track["artist"].toObject()["name"].toString();
+
+    playerTitleLabel->setText(title);
+    playerArtistLabel->setText(artist);
+    playerTitleLabel->show();
+    playerArtistLabel->show();
+
+    statusLabel->setText("Playing: " + title + " by " + artist);
+
+    // Fetch cover for playback
+    // Fetch cover for playback
     if (track.contains("album")) {
-      QJsonObject album = track["album"].toObject();
-      if (album.contains("cover")) {
-        QString coverId = album["cover"].toString();
-        if (!coverId.isEmpty()) {
-          QString coverUrl =
-              QString("https://resources.tidal.com/images/%1/640x640.jpg")
-                  .arg(coverId.replace("-", "/"));
-          imageManager->get(QNetworkRequest(QUrl(coverUrl)));
+      // Check for local cover first
+      QString localCoverPath =
+          DatabaseManager::instance().getCoverPath(trackId);
+      if (!localCoverPath.isEmpty() && QFile::exists(localCoverPath)) {
+        // We have it locally, no need to fetch
+        qDebug() << "Cover available locally at" << localCoverPath;
+      } else {
+        QJsonObject album = track["album"].toObject();
+        if (album.contains("cover")) {
+          QString coverId = album["cover"].toString();
+          if (!coverId.isEmpty()) {
+            QString coverUrl =
+                QString("https://resources.tidal.com/images/%1/640x640.jpg")
+                    .arg(coverId.replace("-", "/"));
+
+            QNetworkRequest request{QUrl(coverUrl)};
+            QNetworkReply *reply = imageManager->get(request);
+
+            connect(reply, &QNetworkReply::finished, this,
+                    [this, reply]() { onCoverImageDownloaded(reply); });
+          } else {
+            qDebug() << "Favorite track" << trackId
+                     << "album has empty cover ID.";
+            coverLabel->hide();
+          }
         } else {
+          qDebug() << "Favorite track" << trackId
+                   << "album has no 'cover' field.";
           coverLabel->hide();
         }
-      } else {
-        coverLabel->hide();
       }
     } else {
+      qDebug() << "Favorite track" << trackId << "has no 'album' field.";
       coverLabel->hide();
     }
   } else {
+    statusLabel->setText("Error: Favorite track not found in cache.");
     coverLabel->hide();
   }
 
-  // Check if we have a local file for this track
+  // Check if we have the file locally file for this track
   QString localPath = DatabaseManager::instance().getFilePath(trackId);
   qDebug() << "Playing favorite track" << trackId;
   qDebug() << "Database file path:" << localPath;
@@ -830,27 +952,41 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
     player->playUrl(QUrl::fromLocalFile(localPath).toString());
     playPauseButton->setText("Pause");
     // Show cover
-    if (!coverLabel->pixmap().isNull()) {
-      coverLabel->show();
-    }
-  } else {
-    qDebug() << "File not available locally, fetching stream...";
-    hifiClient->getTrackStream(trackId);
-  }
-}
-
-void MainWindow::onFavoriteCoverDownloaded(QNetworkReply *reply) {
-  if (reply->error() == QNetworkReply::NoError) {
-    int trackId = reply->request().attribute(QNetworkRequest::User).toInt();
-    for (auto *card : favoriteCards) {
-      if (card->getTrackId() == trackId) {
-        QByteArray data = reply->readAll();
-        QPixmap pixmap;
-        pixmap.loadFromData(data);
-        card->setCoverImage(pixmap);
-        break;
+    // Show cover
+    // Show cover
+    QString coverPath = DatabaseManager::instance().getCoverPath(trackId);
+    if (!coverPath.isEmpty() && QFile::exists(coverPath)) {
+      QPixmap pixmap(coverPath);
+      if (!pixmap.isNull()) {
+        coverLabel->setPixmap(pixmap.scaled(
+            coverLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        coverLabel->show();
+        playerTitleLabel->show();
+        playerArtistLabel->show();
+      }
+    } else {
+      // Try standard location as fallback
+      QString appData =
+          QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+      QString potentialCover =
+          appData + "/covers/" + QString::number(trackId) + ".jpg";
+      if (QFile::exists(potentialCover)) {
+        QPixmap pixmap(potentialCover);
+        if (!pixmap.isNull()) {
+          coverLabel->setPixmap(pixmap.scaled(coverLabel->size(),
+                                              Qt::KeepAspectRatio,
+                                              Qt::SmoothTransformation));
+          coverLabel->show();
+          playerTitleLabel->show();
+          playerArtistLabel->show();
+        }
       }
     }
   }
-  reply->deleteLater();
+}
+}
+else {
+  qDebug() << "File not available locally, fetching stream...";
+  hifiClient->getTrackStream(trackId);
+}
 }

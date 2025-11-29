@@ -5,12 +5,12 @@
 FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
     : QWidget(parent), m_trackData(trackData) {
 
-  setFixedSize(120, 160); // Adjusted for 100x100 cover
+  setFixedSize(120, 180); // Increased height for wrapped text
   setCursor(Qt::PointingHandCursor);
 
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(10, 10, 10, 10);
-  layout->setSpacing(8);
+  layout->setSpacing(5); // Reduced spacing
   layout->setAlignment(Qt::AlignCenter);
 
   // Cover art (larger, square)
@@ -31,10 +31,11 @@ FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
   // Title
   QString title = trackData["title"].toString();
   titleLabel = new QLabel(title, this);
-  titleLabel->setStyleSheet("font-weight: bold; font-size: 13px; color: #fff;");
-  titleLabel->setWordWrap(false);
+  titleLabel->setStyleSheet(
+      "font-weight: bold; font-size: 11px; color: #fff;"); // Smaller font
+  titleLabel->setWordWrap(true);                           // Enable word wrap
   titleLabel->setAlignment(Qt::AlignCenter);
-  titleLabel->setMaximumWidth(110);
+  titleLabel->setFixedHeight(40); // More height for wrapped text
 
   // Artist
   QString artist = trackData["artist"].toObject()["name"].toString();

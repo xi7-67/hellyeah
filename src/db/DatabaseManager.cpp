@@ -47,8 +47,14 @@ void DatabaseManager::initDatabase() {
              "album TEXT, "
              "cover_id TEXT, "
              "file_path TEXT, "
-             "file_path TEXT, "
+             "cover_path TEXT, "
              "json_data TEXT)");
+
+  // Migration: Ensure cover_path exists for existing databases
+  if (!query.exec("SELECT cover_path FROM favorites LIMIT 1")) {
+    qDebug() << "Migrating database: adding cover_path column";
+    query.exec("ALTER TABLE favorites ADD COLUMN cover_path TEXT");
+  }
 
   query.exec("CREATE TABLE IF NOT EXISTS albums ("
              "id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -66,8 +72,9 @@ void DatabaseManager::initDatabase() {
 bool DatabaseManager::addFavorite(const QJsonObject &track) {
   QSqlQuery query;
   query.prepare("INSERT OR REPLACE INTO favorites (id, title, artist, album, "
-                "cover_id, json_data) "
-                "VALUES (:id, :title, :artist, :album, :cover_id, :json_data)");
+                "cover_id, json_data, cover_path) "
+                "VALUES (:id, :title, :artist, :album, :cover_id, :json_data, "
+                ":cover_path)");
 
   int id = track["id"].toInt();
   QString title = track["title"].toString();
@@ -81,7 +88,15 @@ bool DatabaseManager::addFavorite(const QJsonObject &track) {
   query.bindValue(":artist", artist);
   query.bindValue(":album", album);
   query.bindValue(":cover_id", coverId);
+  query.bindValue(":cover_id", coverId);
   query.bindValue(":json_data", jsonData);
+
+  // Check if we have a cover path
+  QString coverPath = "";
+  if (track.contains("coverPath")) {
+    coverPath = track["coverPath"].toString();
+  }
+  query.bindValue(":cover_path", coverPath);
 
   if (!query.exec()) {
     qDebug() << "addFavorite error:" << query.lastError();
@@ -109,13 +124,27 @@ bool DatabaseManager::isFavorite(int trackId) {
 
 QList<QJsonObject> DatabaseManager::getFavorites() {
   QList<QJsonObject> list;
-  QSqlQuery query("SELECT json_data FROM favorites");
+  QSqlQuery query("SELECT json_data, file_path, cover_path FROM favorites");
   while (query.next()) {
-    QString jsonStr = query.value(0).toString();
+    QString jsonStr = query.value("json_data").toString();
     QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-    list.append(doc.object());
+    QJsonObject track = doc.object();
+
+    // Add file path and cover path from DB
+    track["filePath"] = query.value("file_path").toString();
+    track["coverPath"] = query.value("cover_path").toString();
+
+    list.append(track);
   }
   return list;
+}
+
+bool DatabaseManager::updateCoverPath(int trackId, const QString &coverPath) {
+  QSqlQuery query;
+  query.prepare("UPDATE favorites SET cover_path = :path WHERE id = :id");
+  query.bindValue(":path", coverPath);
+  query.bindValue(":id", trackId);
+  return query.exec();
 }
 
 bool DatabaseManager::updateFilePath(int trackId, const QString &filePath) {
@@ -134,6 +163,15 @@ QString DatabaseManager::getFilePath(int trackId) {
     return query.value(0).toString();
   }
   return QString();
+}
+
+QString DatabaseManager::getCoverPath(int trackId) {
+  QSqlQuery query;
+  query.prepare("SELECT cover_path FROM favorites WHERE id = :id");
+  query.bindValue(":id", trackId);
+  if (query.exec() && query.next()) {
+    return query.value(0).toString();
+  }
   return QString();
 }
 

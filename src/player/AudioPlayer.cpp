@@ -9,7 +9,7 @@
 AudioPlayer::AudioPlayer(QObject *parent)
     : QObject(parent), currentReply(nullptr), tempFile(nullptr),
       engine(nullptr), sound(nullptr), isEngineInitialized(false),
-      isSoundInitialized(false) {
+      isSoundInitialized(false), m_volume(1.0f) {
 
   manager = new QNetworkAccessManager(this);
   positionTimer = new QTimer(this);
@@ -126,6 +126,7 @@ void AudioPlayer::onDownloadFinished() {
     }
 
     isSoundInitialized = true;
+    ma_sound_set_volume(sound, m_volume); // Apply stored volume
     ma_sound_start(sound);
     positionTimer->start();
     emit durationChanged(duration());
@@ -208,6 +209,7 @@ void AudioPlayer::onPositionTimer() {
 }
 
 void AudioPlayer::setVolume(float volume) {
+  m_volume = volume; // Store it
   if (isSoundInitialized) {
     ma_sound_set_volume(sound, volume);
   }
