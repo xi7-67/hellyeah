@@ -69,6 +69,13 @@ void AudioPlayer::playUrl(const QString &url) {
     tempFile = nullptr;
   }
 
+  QUrl qUrl(url);
+  if (qUrl.isLocalFile()) {
+    qDebug() << "Playing local file:" << qUrl.toLocalFile();
+    startPlayback(qUrl.toLocalFile());
+    return;
+  }
+
   // Create a temp file
   tempFile = new QTemporaryFile(this);
   if (!tempFile->open()) {
@@ -78,13 +85,33 @@ void AudioPlayer::playUrl(const QString &url) {
 
   qDebug() << "Downloading to temp file:" << tempFile->fileName();
 
-  QNetworkRequest request((QUrl(url)));
+  QNetworkRequest request(qUrl);
   currentReply = manager->get(request);
 
   connect(currentReply, &QNetworkReply::finished, this,
           &AudioPlayer::onDownloadFinished);
   connect(currentReply, &QNetworkReply::downloadProgress, this,
           &AudioPlayer::onDownloadProgress);
+}
+
+void AudioPlayer::startPlayback(const QString &filePath) {
+  if (isSoundInitialized) {
+    ma_sound_uninit(sound);
+    isSoundInitialized = false;
+  }
+
+  ma_result result = ma_sound_init_from_file(
+      engine, filePath.toUtf8().constData(), 0, NULL, NULL, sound);
+  if (result != MA_SUCCESS) {
+    emit errorOccurred("Failed to load sound file.");
+    return;
+  }
+
+  isSoundInitialized = true;
+  ma_sound_set_volume(sound, m_volume); // Apply stored volume
+  ma_sound_start(sound);
+  positionTimer->start();
+  emit durationChanged(duration());
 }
 
 void AudioPlayer::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
@@ -108,30 +135,13 @@ void AudioPlayer::onDownloadFinished() {
 
     qDebug() << "Download finished. Playing...";
 
-    if (isSoundInitialized) {
-      ma_sound_uninit(sound);
-      isSoundInitialized = false;
-    }
+    qDebug() << "Download finished. Playing...";
 
-    // Load sound from file
-    // Note: QTemporaryFile might need to be kept open or name used.
-    // ma_engine_play_sound_from_file takes a path.
-
-    ma_result result = ma_sound_init_from_file(
-        engine, tempFile->fileName().toUtf8().constData(), 0, NULL, NULL,
-        sound);
-    if (result != MA_SUCCESS) {
-      emit errorOccurred("Failed to load sound file.");
-      return;
-    }
-
-    isSoundInitialized = true;
-    ma_sound_set_volume(sound, m_volume); // Apply stored volume
-    ma_sound_start(sound);
-    positionTimer->start();
-    emit durationChanged(duration());
+    startPlayback(tempFile->fileName());
 
   } else {
+  }
+  else {
     emit errorOccurred("Download error: " + currentReply->errorString());
   }
 

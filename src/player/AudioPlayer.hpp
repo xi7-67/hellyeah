@@ -52,4 +52,5 @@ private:
 
   void initMiniaudio();
   void cleanupMiniaudio();
+  void startPlayback(const QString &filePath);
 };
