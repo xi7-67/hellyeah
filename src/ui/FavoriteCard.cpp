@@ -58,21 +58,32 @@ FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
   // Let's add it to layout but center it.
 
   unfavoriteButton = new QPushButton("★", this);
-  unfavoriteButton->setFixedSize(24, 24);
+  unfavoriteButton->setFixedSize(28, 28);
   unfavoriteButton->setFlat(true);
   unfavoriteButton->setCursor(Qt::PointingHandCursor);
   unfavoriteButton->setStyleSheet(
-      "QPushButton { color: #FFD700; border: none; font-size: 18px; }"
-      "QPushButton:hover { color: #FFA500; }");
-  unfavoriteButton->hide();
+      "QPushButton { "
+      "  color: #FFD700; "
+      "  border: none; "
+      "  font-size: 18px; "
+      "  background-color: rgba(0, 0, 0, 0.5); " // Semi-transparent black by
+                                                 // default
+      "  border-radius: 14px; "
+      "}"
+      "QPushButton:hover { "
+      "  color: #FFD700; "
+      "  background-color: #000000; " // Full black on hover
+      "}");
+
+  // Position button on the top-right
+  unfavoriteButton->move(92, 10); // 120 - 28 = 92 for right alignment
+  unfavoriteButton->hide();       // Hidden by default, shown on card hover
 
   connect(unfavoriteButton, &QPushButton::clicked, this,
           [this]() { emit unfavoriteClicked(getTrackId()); });
 
   layout->addWidget(coverLabel);
   layout->addWidget(textContainer);
-  // layout->addWidget(unfavoriteButton); // Optional: add back if needed, or
-  // make overlay
 
   // Card styling
   setStyleSheet(
@@ -96,11 +107,13 @@ void FavoriteCard::mousePressEvent(QMouseEvent *event) {
 }
 
 void FavoriteCard::enterEvent(QEnterEvent *event) {
+  // Show star button when hovering over card
   unfavoriteButton->show();
   QWidget::enterEvent(event);
 }
 
 void FavoriteCard::leaveEvent(QEvent *event) {
+  // Hide star button when not hovering over card
   unfavoriteButton->hide();
   QWidget::leaveEvent(event);
 }
