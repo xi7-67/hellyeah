@@ -689,20 +689,43 @@ void MainWindow::onCoverImageDownloaded(QNetworkReply *reply) {
   if (reply->error() == QNetworkReply::NoError) {
     QByteArray data = reply->readAll();
     QPixmap pixmap;
-    pixmap.loadFromData(data);
-    if (!pixmap.isNull()) {
-      coverLabel->setPixmap(pixmap.scaled(
-          coverLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-      coverLabel->show(); // Show the cover!
-      playerTitleLabel->show();
-      playerArtistLabel->show();
-    } else {
-      qDebug() << "Failed to load pixmap from downloaded data";
-      coverLabel->hide();
+
+    // Try loading with explicit format hint first
+    if (!pixmap.loadFromData(data, "JPG")) {
+      // Fallback to auto-detection
+      if (!pixmap.loadFromData(data)) {
+        qDebug() << "Failed to load pixmap from downloaded data";
+        // Do NOT hide the label here if we might have shown a local cover
+        // already! But wait, if we are here, it means we decided to download.
+        // If we decided to download, it means we didn't find a local cover.
+        // So it's safe to hide?
+        // EXCEPT if the race condition happened:
+        // 1. check local -> empty
+        // 2. start download
+        // 3. check local (in play block) -> found (maybe?) or found fallback
+        // 4. show cover
+        // 5. download finishes -> fails -> hides cover
+
+        // So, only hide if we don't have a valid pixmap on the label?
+        // Or just log error and don't hide.
+        // coverLabel->hide();
+        return;
+      }
     }
+
+    coverLabel->setPixmap(pixmap.scaled(coverLabel->size(), Qt::KeepAspectRatio,
+                                        Qt::SmoothTransformation));
+    coverLabel->show();
+
+    // Save this cover!
+    // We should probably save it if we went through the trouble of downloading
+    // it But DownloadManager handles downloads usually. This is the old ad-hoc
+    // download. Let's leave it for now, but ensure we don't hide the label
+    // unnecessarily.
+
   } else {
-    qDebug() << "Network error downloading cover:" << reply->errorString();
-    coverLabel->hide();
+    qDebug() << "Cover download error:" << reply->errorString();
+    // coverLabel->hide(); // Don't hide, might have local cover shown
   }
   reply->deleteLater();
 }
@@ -903,10 +926,27 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
       // Check for local cover first
       QString localCoverPath =
           DatabaseManager::instance().getCoverPath(trackId);
+
+      // Also check standard location as fallback
+      if (localCoverPath.isEmpty()) {
+        QString appData =
+            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QString standardPath =
+            appData + "/covers/" + QString::number(trackId) + ".jpg";
+        if (QFile::exists(standardPath)) {
+          localCoverPath = standardPath;
+          // Optionally update DB here?
+          DatabaseManager::instance().updateCoverPath(trackId, standardPath);
+        }
+      }
+
       if (!localCoverPath.isEmpty() && QFile::exists(localCoverPath)) {
         // We have it locally, no need to fetch
-        qDebug() << "Cover available locally at" << localCoverPath;
+        qDebug() << "Cover available locally at" << localCoverPath
+                 << "- skipping network fetch";
       } else {
+        qDebug() << "Cover NOT found locally for" << trackId
+                 << "- fetching from network";
         QJsonObject album = track["album"].toObject();
         if (album.contains("cover")) {
           QString coverId = album["cover"].toString();
@@ -982,11 +1022,8 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
         }
       }
     }
+  } else {
+    qDebug() << "File not available locally, fetching stream...";
+    hifiClient->getTrackStream(trackId);
   }
-}
-}
-else {
-  qDebug() << "File not available locally, fetching stream...";
-  hifiClient->getTrackStream(trackId);
-}
 }

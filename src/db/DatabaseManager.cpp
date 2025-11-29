@@ -140,11 +140,15 @@ QList<QJsonObject> DatabaseManager::getFavorites() {
 }
 
 bool DatabaseManager::updateCoverPath(int trackId, const QString &coverPath) {
+  qDebug() << "DB: updateCoverPath for" << trackId << "to" << coverPath;
   QSqlQuery query;
   query.prepare("UPDATE favorites SET cover_path = :path WHERE id = :id");
   query.bindValue(":path", coverPath);
   query.bindValue(":id", trackId);
-  return query.exec();
+  bool success = query.exec();
+  if (!success)
+    qDebug() << "DB: updateCoverPath failed:" << query.lastError();
+  return success;
 }
 
 bool DatabaseManager::updateFilePath(int trackId, const QString &filePath) {
@@ -170,8 +174,12 @@ QString DatabaseManager::getCoverPath(int trackId) {
   query.prepare("SELECT cover_path FROM favorites WHERE id = :id");
   query.bindValue(":id", trackId);
   if (query.exec() && query.next()) {
-    return query.value(0).toString();
+    QString path = query.value(0).toString();
+    qDebug() << "DB: getCoverPath for" << trackId << "returned" << path;
+    return path;
   }
+  qDebug() << "DB: getCoverPath for" << trackId
+           << "returned empty (or query failed)";
   return QString();
 }
 

@@ -70,9 +70,15 @@ void AudioPlayer::playUrl(const QString &url) {
   }
 
   QUrl qUrl(url);
-  if (qUrl.isLocalFile()) {
-    qDebug() << "Playing local file:" << qUrl.toLocalFile();
-    startPlayback(qUrl.toLocalFile());
+  qDebug() << "AudioPlayer::playUrl input:" << url;
+  qDebug() << "AudioPlayer::playUrl parsed:" << qUrl;
+  qDebug() << "AudioPlayer::playUrl scheme:" << qUrl.scheme();
+  qDebug() << "AudioPlayer::playUrl isLocalFile:" << qUrl.isLocalFile();
+
+  if (qUrl.isLocalFile() || qUrl.scheme() == "file") {
+    QString localPath = qUrl.isLocalFile() ? qUrl.toLocalFile() : qUrl.path();
+    qDebug() << "Playing local file directly:" << localPath;
+    startPlayback(localPath);
     return;
   }
 
@@ -140,8 +146,7 @@ void AudioPlayer::onDownloadFinished() {
     startPlayback(tempFile->fileName());
 
   } else {
-  }
-  else {
+    qDebug() << "AudioPlayer download failed:" << currentReply->errorString();
     emit errorOccurred("Download error: " + currentReply->errorString());
   }
 
