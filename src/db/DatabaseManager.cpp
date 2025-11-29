@@ -1,6 +1,7 @@
 #include "DatabaseManager.hpp"
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QJsonDocument>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -106,10 +107,34 @@ bool DatabaseManager::addFavorite(const QJsonObject &track) {
 }
 
 bool DatabaseManager::removeFavorite(int trackId) {
+  // Get file paths before deleting the record
+  QString filePath = getFilePath(trackId);
+  QString coverPath = getCoverPath(trackId);
+
   QSqlQuery query;
   query.prepare("DELETE FROM favorites WHERE id = :id");
   query.bindValue(":id", trackId);
-  return query.exec();
+
+  if (query.exec()) {
+    // If DB deletion was successful, remove the files
+    if (!filePath.isEmpty() && QFile::exists(filePath)) {
+      if (QFile::remove(filePath)) {
+        qDebug() << "Deleted audio file:" << filePath;
+      } else {
+        qDebug() << "Failed to delete audio file:" << filePath;
+      }
+    }
+
+    if (!coverPath.isEmpty() && QFile::exists(coverPath)) {
+      if (QFile::remove(coverPath)) {
+        qDebug() << "Deleted cover file:" << coverPath;
+      } else {
+        qDebug() << "Failed to delete cover file:" << coverPath;
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 bool DatabaseManager::isFavorite(int trackId) {
@@ -137,6 +162,27 @@ QList<QJsonObject> DatabaseManager::getFavorites() {
     list.append(track);
   }
   return list;
+}
+
+QJsonObject DatabaseManager::getTrack(int trackId) {
+  QSqlQuery query;
+  query.prepare(
+      "SELECT json_data, file_path, cover_path FROM favorites WHERE id = :id");
+  query.bindValue(":id", trackId);
+
+  if (query.exec() && query.next()) {
+    QString jsonStr = query.value("json_data").toString();
+    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
+    QJsonObject track = doc.object();
+
+    // Add file path and cover path from DB
+    track["filePath"] = query.value("file_path").toString();
+    track["coverPath"] = query.value("cover_path").toString();
+
+    return track;
+  }
+
+  return QJsonObject(); // Return empty object if not found
 }
 
 bool DatabaseManager::updateCoverPath(int trackId, const QString &coverPath) {

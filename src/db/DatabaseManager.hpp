@@ -15,6 +15,7 @@ public:
   bool removeFavorite(int trackId);
   bool isFavorite(int trackId);
   QList<QJsonObject> getFavorites();
+  QJsonObject getTrack(int trackId);
   bool updateFilePath(int trackId, const QString &filePath);
   bool updateCoverPath(int trackId, const QString &coverPath);
   QString getFilePath(int trackId);

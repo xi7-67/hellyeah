@@ -908,79 +908,89 @@ void MainWindow::onHomeClicked() {
 
 void MainWindow::onFavoriteCardClicked(int trackId) {
   // Update player info
+  QJsonObject track;
+
   if (trackCache.contains(trackId)) {
-    QJsonObject track = trackCache[trackId];
-    QString title = track["title"].toString();
-    QString artist = track["artist"].toObject()["name"].toString();
+    track = trackCache[trackId];
+  } else {
+    // Track not in cache, fetch from database
+    track = DatabaseManager::instance().getTrack(trackId);
+    if (!track.isEmpty()) {
+      // Add to cache for future use
+      trackCache.insert(trackId, track);
+    } else {
+      statusLabel->setText("Error: Favorite track not found in database.");
+      coverLabel->hide();
+      return;
+    }
+  }
 
-    playerTitleLabel->setText(title);
-    playerArtistLabel->setText(artist);
-    playerTitleLabel->show();
-    playerArtistLabel->show();
+  QString title = track["title"].toString();
+  QString artist = track["artist"].toObject()["name"].toString();
 
-    statusLabel->setText("Playing: " + title + " by " + artist);
+  playerTitleLabel->setText(title);
+  playerArtistLabel->setText(artist);
+  playerTitleLabel->show();
+  playerArtistLabel->show();
 
-    // Fetch cover for playback
-    // Fetch cover for playback
-    if (track.contains("album")) {
-      // Check for local cover first
-      QString localCoverPath =
-          DatabaseManager::instance().getCoverPath(trackId);
+  statusLabel->setText("Playing: " + title + " by " + artist);
 
-      // Also check standard location as fallback
-      if (localCoverPath.isEmpty()) {
-        QString appData =
-            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        QString standardPath =
-            appData + "/covers/" + QString::number(trackId) + ".jpg";
-        if (QFile::exists(standardPath)) {
-          localCoverPath = standardPath;
-          // Optionally update DB here?
-          DatabaseManager::instance().updateCoverPath(trackId, standardPath);
-        }
+  // Fetch cover for playback
+  // Fetch cover for playback
+  if (track.contains("album")) {
+    // Check for local cover first
+    QString localCoverPath = DatabaseManager::instance().getCoverPath(trackId);
+
+    // Also check standard location as fallback
+    if (localCoverPath.isEmpty()) {
+      QString appData =
+          QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+      QString standardPath =
+          appData + "/covers/" + QString::number(trackId) + ".jpg";
+      if (QFile::exists(standardPath)) {
+        localCoverPath = standardPath;
+        // Optionally update DB here?
+        DatabaseManager::instance().updateCoverPath(trackId, standardPath);
       }
+    }
 
-      if (!localCoverPath.isEmpty() && QFile::exists(localCoverPath)) {
-        // We have it locally, no need to fetch
-        qDebug() << "Cover available locally at" << localCoverPath
-                 << "- skipping network fetch";
-      } else {
-        qDebug() << "Cover NOT found locally for" << trackId
-                 << "- fetching from network";
-        QJsonObject album = track["album"].toObject();
-        if (album.contains("cover")) {
-          QString coverId = album["cover"].toString();
-          if (!coverId.isEmpty()) {
-            QString coverUrl =
-                QString("https://resources.tidal.com/images/%1/640x640.jpg")
-                    .arg(coverId.replace("-", "/"));
+    if (!localCoverPath.isEmpty() && QFile::exists(localCoverPath)) {
+      // We have it locally, no need to fetch
+      qDebug() << "Cover available locally at" << localCoverPath
+               << "- skipping network fetch";
+    } else {
+      qDebug() << "Cover NOT found locally for" << trackId
+               << "- fetching from network";
+      QJsonObject album = track["album"].toObject();
+      if (album.contains("cover")) {
+        QString coverId = album["cover"].toString();
+        if (!coverId.isEmpty()) {
+          QString coverUrl =
+              QString("https://resources.tidal.com/images/%1/640x640.jpg")
+                  .arg(coverId.replace("-", "/"));
 
-            QNetworkRequest request{QUrl(coverUrl)};
-            QNetworkReply *reply = imageManager->get(request);
+          QNetworkRequest request{QUrl(coverUrl)};
+          QNetworkReply *reply = imageManager->get(request);
 
-            connect(reply, &QNetworkReply::finished, this,
-                    [this, reply]() { onCoverImageDownloaded(reply); });
-          } else {
-            qDebug() << "Favorite track" << trackId
-                     << "album has empty cover ID.";
-            coverLabel->hide();
-          }
+          connect(reply, &QNetworkReply::finished, this,
+                  [this, reply]() { onCoverImageDownloaded(reply); });
         } else {
           qDebug() << "Favorite track" << trackId
-                   << "album has no 'cover' field.";
+                   << "album has empty cover ID.";
           coverLabel->hide();
         }
+      } else {
+        qDebug() << "Favorite track" << trackId
+                 << "album has no 'cover' field.";
+        coverLabel->hide();
       }
-    } else {
-      qDebug() << "Favorite track" << trackId << "has no 'album' field.";
-      coverLabel->hide();
     }
   } else {
-    statusLabel->setText("Error: Favorite track not found in cache.");
+    qDebug() << "Favorite track" << trackId << "has no 'album' field.";
     coverLabel->hide();
   }
 
-  // Check if we have the file locally file for this track
+  // Check if we have the file locally for this track
   QString localPath = DatabaseManager::instance().getFilePath(trackId);
   qDebug() << "Playing favorite track" << trackId;
   qDebug() << "Database file path:" << localPath;
@@ -991,8 +1001,6 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
     qDebug() << "Playing from local file:" << localPath;
     player->playUrl(QUrl::fromLocalFile(localPath).toString());
     playPauseButton->setText("Pause");
-    // Show cover
-    // Show cover
     // Show cover
     QString coverPath = DatabaseManager::instance().getCoverPath(trackId);
     if (!coverPath.isEmpty() && QFile::exists(coverPath)) {
