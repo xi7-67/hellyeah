@@ -45,4 +45,12 @@ private:
   int lastAlbumId = -1;
   enum class RequestType { None, Search, Track, Album };
   RequestType lastRequestType = RequestType::None;
+
+  // Parallel search
+  QList<QNetworkReply *> pendingSearchReplies;
+  void cancelPendingSearch();
+
+  // Parallel track stream
+  QList<QNetworkReply *> pendingTrackReplies;
+  void cancelPendingTrack();
 };

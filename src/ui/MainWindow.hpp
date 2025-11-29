@@ -21,9 +21,9 @@
 #include "../net/DownloadManager.hpp"
 #include "../player/AudioPlayer.hpp"
 #include "AlbumCard.hpp"
+#include "CreateAlbumDialog.hpp"
 #include "FavoriteCard.hpp"
 #include "TrackItemWidget.hpp"
-
 class MainWindow : public QMainWindow {
   Q_OBJECT
 
@@ -54,6 +54,8 @@ private slots:
   void onAlbumCardClicked(int albumId);
   void onAddToAlbumClicked(const QJsonObject &track);
   void onAlbumDeleteClicked(int albumId);
+  void onNextClicked();
+  void onPrevClicked();
 
 private:
   void generateAlbumCoverGrid(int albumId, AlbumCard *card);
@@ -80,6 +82,10 @@ private:
   QMap<int, QJsonObject> trackCache; // Cache tracks by ID
   int currentTrackIdForStream = -1;
 
+  // Navigation context
+  QList<int> currentPlaylist; // Track IDs in current context
+  int currentTrackIndex = -1;
+
   DownloadManager *downloadManager;
 
   void refreshFavoritesList();
@@ -102,7 +108,9 @@ private:
   // Album View
   QWidget *albumPage;
   QLabel *albumTitleLabel;
-  QListWidget *albumTracksList;
+  QScrollArea *albumTracksScrollArea;
+  QWidget *albumTracksContainer;
+  QGridLayout *albumTracksGrid;
   int currentAlbumId = -1;
   QList<FavoriteCard *> favoriteCards; // Track ID -> Card widget
   QPushButton *backButton;

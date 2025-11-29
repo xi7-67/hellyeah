@@ -22,7 +22,7 @@ public:
   QString getCoverPath(int trackId);
 
   // Album methods
-  int createAlbum(const QString &name);
+  int createAlbum(const QString &name, const QString &coverPath = QString());
   QList<QJsonObject> getAlbums();
   bool addTrackToAlbum(int albumId, const QJsonObject &track);
   QList<QJsonObject> getAlbumTracks(int albumId);

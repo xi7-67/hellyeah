@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QPainter>
 #include <QPixmap>
 #include <QStandardPaths>
 #include <QVBoxLayout>
@@ -94,9 +95,9 @@ MainWindow::MainWindow(QWidget *parent)
   homeLayout->addWidget(favouritesLabel);
   homeLayout->addWidget(favouritesScrollArea);
 
-  // Albums Header with + Button
+  // Playlist section
   QHBoxLayout *albumsHeaderLayout = new QHBoxLayout();
-  QLabel *albumsLabel = new QLabel("Albums");
+  QLabel *albumsLabel = new QLabel("Playlists");
   albumsLabel->setStyleSheet(
       "font-size: 20px; font-weight: bold; color: #fff;");
 
@@ -167,12 +168,30 @@ MainWindow::MainWindow(QWidget *parent)
 
   albumViewLayout->addWidget(albumHeader);
 
-  albumTracksList = new QListWidget();
-  albumTracksList->setStyleSheet(
-      "QListWidget { background-color: #121212; border: none; outline: none; }"
-      "QListWidget::item { border-bottom: 1px solid #282828; padding: 5px; }"
-      "QListWidget::item:selected { background-color: #282828; }");
-  albumViewLayout->addWidget(albumTracksList);
+  albumTracksScrollArea = new QScrollArea();
+  albumTracksScrollArea->setWidgetResizable(true);
+  albumTracksScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+  albumTracksScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  albumTracksScrollArea->setStyleSheet(
+      "QScrollArea { background-color: #121212; border: none; }"
+      "QScrollBar:horizontal { height: 8px; background: #282828; }"
+      "QScrollBar::handle:horizontal { background: #535353; border-radius: "
+      "4px; }"
+      "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { "
+      "border: none; background: none; }");
+
+  albumTracksContainer = new QWidget();
+  albumTracksGrid = new QGridLayout(albumTracksContainer);
+  albumTracksGrid->setSpacing(8);
+  albumTracksGrid->setContentsMargins(10, 10, 10, 10);
+  // More columns for smaller cards
+  for (int i = 0; i < 6; i++) {
+    albumTracksGrid->setColumnStretch(i, 1);
+  }
+  albumTracksContainer->setStyleSheet("background-color: #121212;");
+
+  albumTracksScrollArea->setWidget(albumTracksContainer);
+  albumViewLayout->addWidget(albumTracksScrollArea);
 
   pageStack->addWidget(homePage);   // index 0 - Home
   pageStack->addWidget(searchPage); // index 1 - Search Results
@@ -201,14 +220,111 @@ MainWindow::MainWindow(QWidget *parent)
   playerArtistLabel->setMaximumWidth(200);
   playerArtistLabel->hide();
 
-  playPauseButton = new QPushButton("Play", this);
+  // Play/Pause Button
+  playPauseButton = new QPushButton(this);
+  playPauseButton->setFixedSize(40, 40);
+  playPauseButton->setCursor(Qt::PointingHandCursor);
+  playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+  playPauseButton->setIconSize(QSize(24, 24));
+  playPauseButton->setStyleSheet("QPushButton { "
+                                 "  background-color: #282828; "
+                                 "  border: 2px solid #535353; "
+                                 "  border-radius: 20px; "
+                                 "}"
+                                 "QPushButton:hover { "
+                                 "  background-color: #333; "
+                                 "  border-color: #888; "
+                                 "}");
+
+  // Previous Button
+  QPushButton *prevButton = new QPushButton(this);
+  prevButton->setFixedSize(28, 28);
+  prevButton->setCursor(Qt::PointingHandCursor);
+  prevButton->setIcon(style()->standardIcon(QStyle::SP_MediaSkipBackward));
+  prevButton->setIconSize(QSize(20, 20));
+  prevButton->setStyleSheet("QPushButton { "
+                            "  background-color: #282828; "
+                            "  border: none; "
+                            "  border-radius: 14px; "
+                            "}"
+                            "QPushButton:hover { "
+                            "  background-color: #333; "
+                            "}");
+
+  // Next Button
+  QPushButton *nextButton = new QPushButton(this);
+  nextButton->setFixedSize(28, 28);
+  nextButton->setCursor(Qt::PointingHandCursor);
+  nextButton->setIcon(style()->standardIcon(QStyle::SP_MediaSkipForward));
+  nextButton->setIconSize(QSize(20, 20));
+  nextButton->setStyleSheet("QPushButton { "
+                            "  background-color: #282828; "
+                            "  border: none; "
+                            "  border-radius: 14px; "
+                            "}"
+                            "QPushButton:hover { "
+                            "  background-color: #333; "
+                            "}");
+
+  // Common slider stylesheet - for seek slider
+  // Common slider stylesheet - for seek slider
+  QString seekSliderStyle = "QSlider::groove:horizontal { "
+                            "  border: 1px solid #333; "
+                            "  height: 4px; "
+                            "  background: #333; "
+                            "  margin: 2px 0; "
+                            "  border-radius: 2px; "
+                            "}"
+                            "QSlider::handle:horizontal { "
+                            "  background: #b3b3b3; "
+                            "  border: 1px solid #888; "
+                            "  width: 16px; "
+                            "  height: 16px; "
+                            "  margin: -6px 0; " // (16-4)/2 = 6
+                            "  border-radius: 8px; "
+                            "}"
+                            "QSlider::handle:horizontal:hover { "
+                            "  background: #fff; "
+                            "}"
+                            "QSlider::sub-page:horizontal { "
+                            "  background: #b3b3b3; "
+                            "  border-radius: 2px; "
+                            "}";
+
+  // Volume slider stylesheet - smaller handle and groove
+  // Volume slider stylesheet - smaller handle and groove
+  QString volumeSliderStyle = "QSlider::groove:horizontal { "
+                              "  border: 1px solid #333; "
+                              "  height: 2px; "
+                              "  background: #333; "
+                              "  margin: 2px 0; "
+                              "  border-radius: 1px; "
+                              "}"
+                              "QSlider::handle:horizontal { "
+                              "  background: #b3b3b3; "
+                              "  border: 1px solid #888; "
+                              "  width: 12px; "
+                              "  height: 12px; "
+                              "  margin: -5px 0; " // (12-2)/2 = 5
+                              "  border-radius: 6px; "
+                              "}"
+                              "QSlider::handle:horizontal:hover { "
+                              "  background: #fff; "
+                              "}"
+                              "QSlider::sub-page:horizontal { "
+                              "  background: #b3b3b3; "
+                              "  border-radius: 1px; "
+                              "}";
+
   volumeSlider = new QSlider(Qt::Horizontal, this);
   volumeSlider->setRange(0, 100);
   volumeSlider->setValue(45); // Default to 45%
-  player->setVolume(0.45f);   // Set initial volume
+  volumeSlider->setStyleSheet(volumeSliderStyle);
+  player->setVolume(0.45f); // Set initial volume
 
   seekSlider = new QSlider(Qt::Horizontal, this);
   seekSlider->setRange(0, 0);
+  seekSlider->setStyleSheet(seekSliderStyle);
 
   statusLabel = new QLabel("Ready", this);
 
@@ -228,16 +344,41 @@ MainWindow::MainWindow(QWidget *parent)
   contentLayout->addLayout(playerInfoLayout);
 
   // Controls layout
-  QHBoxLayout *controlsLayout = new QHBoxLayout();
-  controlsLayout->addWidget(playPauseButton);
-  controlsLayout->addWidget(seekSlider);
-  controlsLayout->addWidget(new QLabel("Vol:"));
-  controlsLayout->addWidget(volumeSlider);
+  QVBoxLayout *playerControlsLayout = new QVBoxLayout();
+  playerControlsLayout->setSpacing(5);
+
+  // Top row: Buttons and Volume
+  QHBoxLayout *buttonsLayout = new QHBoxLayout();
+
+  // Center the playback buttons
+  buttonsLayout->addStretch(1);
+  buttonsLayout->addWidget(prevButton);
+  buttonsLayout->addSpacing(15);
+  buttonsLayout->addWidget(playPauseButton);
+  buttonsLayout->addSpacing(15);
+  buttonsLayout->addWidget(nextButton);
+  buttonsLayout->addStretch(1);
+
+  // Volume on the right
+  QLabel *volumeIcon = new QLabel(this);
+  volumeIcon->setPixmap(
+      style()->standardIcon(QStyle::SP_MediaVolume).pixmap(16, 16));
+  buttonsLayout->addWidget(volumeIcon);
+  buttonsLayout->addWidget(volumeSlider);
+  // volumeSlider is already set to fixed width or ratio?
+  // It was set to ratio 1 in previous layout. Here it's just added.
+  // Let's set a fixed width for volume slider to look neat
+  volumeSlider->setFixedWidth(100);
+
+  playerControlsLayout->addLayout(buttonsLayout);
+  playerControlsLayout->addWidget(
+      seekSlider); // Seek bar at the bottom full width
 
   // Assemble main layout
   mainLayout->addLayout(searchLayout);
+  mainLayout->addLayout(homeLayout);
   mainLayout->addLayout(contentLayout);
-  mainLayout->addLayout(controlsLayout);
+  mainLayout->addLayout(playerControlsLayout); // Use new layout
   mainLayout->addWidget(statusLabel);
 
   // Logic
@@ -250,6 +391,10 @@ MainWindow::MainWindow(QWidget *parent)
           &MainWindow::onSearchClicked);
   connect(searchBox, &QLineEdit::returnPressed, this,
           &MainWindow::onSearchClicked);
+  connect(playPauseButton, &QPushButton::clicked, this,
+          &MainWindow::onPlayPauseClicked);
+  connect(prevButton, &QPushButton::clicked, this, &MainWindow::onPrevClicked);
+  connect(nextButton, &QPushButton::clicked, this, &MainWindow::onNextClicked);
 
   connect(hifiClient, &HifiClient::searchResults, this,
           [this](const QJsonArray &tracks) {
@@ -383,15 +528,26 @@ void MainWindow::onTrackSelected(QListWidgetItem *item) {
     coverLabel->hide();
   }
 
+  // Update playlist context for search results
+  currentPlaylist.clear();
+  currentTrackIndex = -1;
+  for (int i = 0; i < resultsList->count(); ++i) {
+    int id = resultsList->item(i)->data(Qt::UserRole).toInt();
+    currentPlaylist.append(id);
+    if (id == trackId) {
+      currentTrackIndex = i;
+    }
+  }
+
   // Check if we have a local file for this track
   QString localPath = DatabaseManager::instance().getFilePath(trackId);
   if (!localPath.isEmpty() && QFile::exists(localPath)) {
     statusLabel->setText("Playing from local cache...");
     player->playUrl(QUrl::fromLocalFile(localPath).toString());
-    playPauseButton->setText("Pause");
+    playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
     // Show cover
     if (!coverLabel->pixmap().isNull()) {
-      coverLabel->show();
+      coverLabel->setVisible(true);
     }
   } else {
     hifiClient->getTrackStream(trackId);
@@ -399,17 +555,19 @@ void MainWindow::onTrackSelected(QListWidgetItem *item) {
 }
 
 void MainWindow::onAddAlbumClicked() {
-  bool ok;
-  QString text =
-      QInputDialog::getText(this, tr("Create New Album"), tr("Album Name:"),
-                            QLineEdit::Normal, "", &ok);
-  if (ok && !text.isEmpty()) {
-    int albumId = DatabaseManager::instance().createAlbum(text);
-    if (albumId != -1) {
-      statusLabel->setText("Album created: " + text);
-      refreshAlbumsList();
-    } else {
-      statusLabel->setText("Failed to create album");
+  CreateAlbumDialog dialog(this);
+  if (dialog.exec() == QDialog::Accepted) {
+    QString name = dialog.getAlbumName();
+    QString coverPath = dialog.getCoverPath();
+
+    if (!name.isEmpty()) {
+      int albumId = DatabaseManager::instance().createAlbum(name, coverPath);
+      if (albumId != -1) {
+        statusLabel->setText("Album created: " + name);
+        refreshAlbumsList();
+      } else {
+        statusLabel->setText("Failed to create album");
+      }
     }
   }
 }
@@ -434,8 +592,17 @@ void MainWindow::refreshAlbumsList() {
     albumsContainer->layout()->addWidget(card);
     albumCards.insert(album["id"].toInt(), card);
 
-    // Generate composite cover from track covers
-    generateAlbumCoverGrid(album["id"].toInt(), card);
+    // Check if album has a cover path
+    if (album.contains("coverPath") &&
+        !album["coverPath"].toString().isEmpty()) {
+      QPixmap pixmap(album["coverPath"].toString());
+      if (!pixmap.isNull()) {
+        card->setCoverImage(pixmap);
+      }
+    } else {
+      // Generate composite cover from track covers
+      generateAlbumCoverGrid(album["id"].toInt(), card);
+    }
   }
 }
 
@@ -449,44 +616,98 @@ void MainWindow::onAlbumCardClicked(int albumId) {
   }
   albumTitleLabel->setText(albumName);
 
-  // Load tracks (placeholder for now)
-  albumTracksList->clear();
+  // Clear existing cards
+  QLayoutItem *child;
+  while ((child = albumTracksGrid->layout()->takeAt(0)) != nullptr) {
+    delete child->widget();
+    delete child;
+  }
+  favoriteCards
+      .clear(); // Re-using this list for tracking cards in album view too?
+                // Actually, favoriteCards is used for the home view updates.
+                // We should probably have a separate list or just not track
+                // them globally if we don't need to update them from outside.
+                // But wait, if we play a track, we might want to update UI.
+                // For now, let's just create them and relying on signals.
+
   QList<QJsonObject> tracks =
       DatabaseManager::instance().getAlbumTracks(albumId);
 
   if (tracks.isEmpty()) {
-    QListWidgetItem *item = new QListWidgetItem("No tracks in this album yet.");
-    item->setForeground(QBrush(QColor("#b3b3b3")));
-    albumTracksList->addItem(item);
+    // Show empty state?
+    QLabel *emptyLabel =
+        new QLabel("No tracks in this album yet.", albumTracksContainer);
+    emptyLabel->setStyleSheet(
+        "color: #b3b3b3; font-size: 16px; margin-top: 20px;");
+    emptyLabel->setAlignment(Qt::AlignCenter);
+    albumTracksGrid->addWidget(emptyLabel, 0, 0, 1, 6, Qt::AlignCenter);
   } else {
+    int row = 0;
+    int col = 0;
+    int maxCols = 6; // Responsive? Fixed for now.
+
     for (const QJsonObject &track : tracks) {
       int trackId = track["id"].toInt();
       trackCache.insert(trackId, track); // Add to cache for playback
 
-      TrackItemWidget *itemWidget = new TrackItemWidget(track, true);
-      QListWidgetItem *item = new QListWidgetItem(albumTracksList);
-      item->setSizeHint(itemWidget->sizeHint());
-      item->setData(Qt::UserRole, trackId); // Store track ID for playback
-      albumTracksList->setItemWidget(item, itemWidget);
+      // Use FavoriteCard for consistency
+      FavoriteCard *card = new FavoriteCard(track, albumTracksContainer);
+
+      // Check actual favorite status
+      bool isFav = DatabaseManager::instance().isFavorite(trackId);
+      card->setFavorite(isFav);
 
       // Connect signals
-      connect(itemWidget, &TrackItemWidget::favoriteToggled, this,
-              [this, track](bool isFavorite) {
-                onFavoriteToggled(track, isFavorite);
+      // Connect signals
+      // Capture the full list of IDs for this album context
+      QList<int> albumTrackIds;
+      for (const auto &t : tracks)
+        albumTrackIds.append(t["id"].toInt());
+
+      connect(card, &FavoriteCard::clicked, this,
+              [this, trackId, albumTrackIds]() {
+                currentPlaylist = albumTrackIds;
+                currentTrackIndex = currentPlaylist.indexOf(trackId);
+                onFavoriteCardClicked(trackId);
               });
-      connect(itemWidget, &TrackItemWidget::addToAlbumClicked, this,
-              [this, track]() { onAddToAlbumClicked(track); });
+      connect(card, &FavoriteCard::addToAlbumClicked, this,
+              &MainWindow::onAddToAlbumClicked);
+      connect(card, &FavoriteCard::unfavoriteClicked, this,
+              [this, track](int id) {
+                // If unfavorited from album view, what happens?
+                // It removes from favorites. Should it remove from album?
+                // Probably yes, since album tracks are favorites.
+                // But for now let's just toggle the star.
+                onFavoriteToggled(track, false);
+              });
+      connect(card, &FavoriteCard::favoriteToggled, this,
+              [this](const QJsonObject &t, bool isFav) {
+                onFavoriteToggled(t, isFav);
+              });
+
+      // Check if we have a cover image for this track
+      QString coverPath = DatabaseManager::instance().getCoverPath(trackId);
+      if (!coverPath.isEmpty()) {
+        QPixmap pixmap(coverPath);
+        if (!pixmap.isNull()) {
+          card->setCoverImage(pixmap);
+        }
+      } else {
+        // Trigger download if needed?
+        // MainWindow::onFavoriteCardClicked handles playback, but cover loading
+        // is usually done via refreshFavoritesList logic or on-demand. Let's
+        // rely on the existing logic or maybe trigger a check.
+      }
+
+      albumTracksGrid->addWidget(card, row, col);
+
+      col++;
+      if (col >= maxCols) {
+        col = 0;
+        row++;
+      }
     }
   }
-
-  // Connect double-click to play tracks
-  connect(albumTracksList, &QListWidget::itemDoubleClicked, this,
-          [this](QListWidgetItem *item) {
-            int trackId = item->data(Qt::UserRole).toInt();
-            if (trackCache.contains(trackId)) {
-              onTrackSelected(item);
-            }
-          });
 
   pageStack->setCurrentIndex(2); // Album View
   statusLabel->setText("Viewing album: " + albumName);
@@ -527,6 +748,25 @@ void MainWindow::onAddToAlbumClicked(const QJsonObject &track) {
       if (success) {
         QString trackTitle = track["title"].toString();
         statusLabel->setText("Added \"" + trackTitle + "\" to " + selected);
+
+        // Check if we need to download the cover
+        int trackId = track["id"].toInt();
+        QString existingCover =
+            DatabaseManager::instance().getCoverPath(trackId);
+        if (existingCover.isEmpty()) {
+          if (track.contains("album")) {
+            QJsonObject album = track["album"].toObject();
+            if (album.contains("cover")) {
+              QString coverId = album["cover"].toString();
+              if (!coverId.isEmpty()) {
+                QString coverUrl =
+                    QString("https://resources.tidal.com/images/%1/640x640.jpg")
+                        .arg(coverId.replace("-", "/"));
+                downloadManager->downloadCover(coverUrl, trackId);
+              }
+            }
+          }
+        }
 
         // Refresh albums list to update cover if needed
         refreshAlbumsList();
@@ -585,32 +825,47 @@ void MainWindow::generateAlbumCoverGrid(int albumId, AlbumCard *card) {
     return; // No tracks, use default cover
   }
 
-  // For now, just use the first track's cover
-  // TODO: Implement proper 2x2 grid composition
-  QJsonObject firstTrack = tracks.first();
-  QString coverId = firstTrack["album"].toObject()["cover"].toString();
+  // Collect up to 4 covers
+  QList<QPixmap> covers;
+  for (const QJsonObject &track : tracks) {
+    if (covers.size() >= 4)
+      break;
 
-  if (coverId.isEmpty()) {
-    return;
-  }
-
-  // Fetch cover image using the same method as track covers
-  QString coverUrl = "https://api.napster.com/imageserver/v2/albums/" +
-                     coverId + "/images/70x70.jpg";
-  QNetworkRequest request{QUrl(coverUrl)};
-  QNetworkReply *reply = imageManager->get(request);
-
-  connect(reply, &QNetworkReply::finished, this, [this, reply, card]() {
-    if (reply->error() == QNetworkReply::NoError) {
-      QPixmap pixmap;
-      pixmap.loadFromData(reply->readAll());
-
-      if (!pixmap.isNull()) {
-        card->setCoverImage(pixmap);
+    int trackId = track["id"].toInt();
+    QString coverPath = DatabaseManager::instance().getCoverPath(trackId);
+    if (!coverPath.isEmpty()) {
+      QPixmap pix(coverPath);
+      if (!pix.isNull()) {
+        covers.append(pix);
       }
     }
-    reply->deleteLater();
-  });
+  }
+
+  if (covers.isEmpty())
+    return;
+
+  // Create composite image
+  QPixmap composite(200, 200);
+  composite.fill(Qt::black);
+  QPainter painter(&composite);
+
+  if (covers.size() == 1) {
+    painter.drawPixmap(0, 0, 200, 200, covers[0]);
+  } else if (covers.size() == 2) {
+    painter.drawPixmap(0, 0, 100, 200, covers[0]);
+    painter.drawPixmap(100, 0, 100, 200, covers[1]);
+  } else if (covers.size() == 3) {
+    painter.drawPixmap(0, 0, 100, 200, covers[0]);
+    painter.drawPixmap(100, 0, 100, 100, covers[1]);
+    painter.drawPixmap(100, 100, 100, 100, covers[2]);
+  } else {
+    painter.drawPixmap(0, 0, 100, 100, covers[0]);
+    painter.drawPixmap(100, 0, 100, 100, covers[1]);
+    painter.drawPixmap(0, 100, 100, 100, covers[2]);
+    painter.drawPixmap(100, 100, 100, 100, covers[3]);
+  }
+
+  card->setCoverImage(composite);
 }
 
 void MainWindow::onTrackStreamUrl(const QString &url) {
@@ -628,10 +883,10 @@ void MainWindow::onTrackStreamUrl(const QString &url) {
   // Otherwise, play normally
   statusLabel->setText("Playing...");
   player->playUrl(url);
-  playPauseButton->setText("Pause");
+  playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
   // Show cover when playback starts
   if (!coverLabel->pixmap().isNull()) {
-    coverLabel->show();
+    coverLabel->setVisible(true);
   }
 }
 
@@ -644,12 +899,18 @@ void MainWindow::onApiError(const QString &message) {
 }
 
 void MainWindow::onPlayPauseClicked() {
-  if (playPauseButton->text() == "Pause") {
+  // Check current icon state by comparing with standard icons
+  // But easier to check player state or just toggle based on a flag.
+  // Let's check player state if possible, or just toggle.
+  // Actually, QIcon comparison isn't straightforward.
+  // Let's rely on player state.
+
+  if (player->isPlaying()) {
     player->pause();
-    playPauseButton->setText("Play");
+    playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
   } else {
     player->play();
-    playPauseButton->setText("Pause");
+    playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
   }
 }
 
@@ -849,8 +1110,16 @@ void MainWindow::refreshFavoritesList() {
     trackCache.insert(id, track);
 
     FavoriteCard *card = new FavoriteCard(track);
-    connect(card, &FavoriteCard::clicked, this,
-            [this, id]() { onFavoriteCardClicked(id); });
+    connect(card, &FavoriteCard::clicked, this, [this, id]() {
+      // Populate playlist with all favorites
+      currentPlaylist.clear();
+      auto favs = DatabaseManager::instance().getFavorites();
+      for (const auto &f : favs)
+        currentPlaylist.append(f["id"].toInt());
+
+      currentTrackIndex = currentPlaylist.indexOf(id);
+      onFavoriteCardClicked(id);
+    });
     connect(card, &FavoriteCard::unfavoriteClicked, this,
             [this, track](int trackId) {
               DatabaseManager::instance().removeFavorite(trackId);
@@ -935,13 +1204,10 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
 
   statusLabel->setText("Playing: " + title + " by " + artist);
 
-  // Fetch cover for playback
-  // Fetch cover for playback
   if (track.contains("album")) {
     // Check for local cover first
     QString localCoverPath = DatabaseManager::instance().getCoverPath(trackId);
 
-    // Also check standard location as fallback
     if (localCoverPath.isEmpty()) {
       QString appData =
           QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -955,7 +1221,7 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
     }
 
     if (!localCoverPath.isEmpty() && QFile::exists(localCoverPath)) {
-      // We have it locally, no need to fetch
+      // running locally, no fetch brother
       qDebug() << "Cover available locally at" << localCoverPath
                << "- skipping network fetch";
     } else {
@@ -1000,7 +1266,6 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
     statusLabel->setText("Playing from local cache...");
     qDebug() << "Playing from local file:" << localPath;
     player->playUrl(QUrl::fromLocalFile(localPath).toString());
-    playPauseButton->setText("Pause");
     // Show cover
     QString coverPath = DatabaseManager::instance().getCoverPath(trackId);
     if (!coverPath.isEmpty() && QFile::exists(coverPath)) {
@@ -1034,4 +1299,47 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
     qDebug() << "File not available locally, fetching stream...";
     hifiClient->getTrackStream(trackId);
   }
+}
+
+void MainWindow::onNextClicked() {
+  if (currentPlaylist.isEmpty() || currentTrackIndex == -1)
+    return;
+
+  int nextIndex = currentTrackIndex + 1;
+  if (nextIndex >= currentPlaylist.size()) {
+    nextIndex = 0; // Loop back to start
+  }
+
+  currentTrackIndex = nextIndex;
+  int nextTrackId = currentPlaylist[nextIndex];
+
+  // Reuse logic - if we have the track item widget, we can simulate click,
+  // but better to just call the playback logic directly.
+  // However, onTrackSelected does UI updates too.
+  // For simplicity, let's try to find the item in the list if we are in search
+  // view. But we might be in favorites view.
+
+  // Let's just trigger playback directly.
+  // We need to update UI (title, artist, cover).
+  // We can reuse onFavoriteCardClicked logic if it's a favorite/album track.
+  // Or we can extract a common playTrack(int id) method.
+
+  // For now, let's call onFavoriteCardClicked which handles fetching metadata
+  // from DB/Cache This works well if the track is in DB or Cache.
+  onFavoriteCardClicked(nextTrackId);
+}
+
+void MainWindow::onPrevClicked() {
+  if (currentPlaylist.isEmpty() || currentTrackIndex == -1)
+    return;
+
+  int prevIndex = currentTrackIndex - 1;
+  if (prevIndex < 0) {
+    prevIndex = currentPlaylist.size() - 1; // Loop to end
+  }
+
+  currentTrackIndex = prevIndex;
+  int prevTrackId = currentPlaylist[prevIndex];
+
+  onFavoriteCardClicked(prevTrackId);
 }

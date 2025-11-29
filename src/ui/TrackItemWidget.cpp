@@ -72,9 +72,9 @@ void TrackItemWidget::setFavorite(bool favorite) {
 }
 
 void TrackItemWidget::enterEvent(QEnterEvent *event) {
-  Q_UNUSED(event);
-  starButton->show();
-  albumButton->show();
+  starButton->setVisible(true);
+  albumButton->setVisible(true);
+  QWidget::enterEvent(event);
 }
 
 void TrackItemWidget::leaveEvent(QEvent *event) {

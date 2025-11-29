@@ -34,30 +34,55 @@ void HifiClient::searchTracks(const QString &query) {
   lastQuery = query;
   lastRequestType = RequestType::Search;
 
-  QUrl url(getCurrentBaseUrl() + "/search/");
-  QUrlQuery q;
-  q.addQueryItem("s", query);
-  url.setQuery(q);
+  cancelPendingSearch();
 
-  QNetworkRequest request(url);
-  QNetworkReply *reply = manager->get(request);
-  connect(reply, &QNetworkReply::finished, this, &HifiClient::onSearchFinished);
+  // Try top 3 endpoints in parallel
+  int count = 0;
+  for (int i = 0; i < apiEndpoints.size() && count < 3; ++i) {
+    int idx = (currentEndpointIndex + i) % apiEndpoints.size();
+    QString baseUrl = apiEndpoints[idx];
+
+    QUrl url(baseUrl + "/search/");
+    QUrlQuery q;
+    q.addQueryItem("s", query);
+    url.setQuery(q);
+
+    QNetworkRequest request(url);
+    QNetworkReply *reply = manager->get(request);
+    pendingSearchReplies.append(reply);
+
+    connect(reply, &QNetworkReply::finished, this,
+            &HifiClient::onSearchFinished);
+    count++;
+  }
 }
 
 void HifiClient::getTrackStream(int trackId) {
   lastTrackId = trackId;
   lastRequestType = RequestType::Track;
 
-  QUrl url(getCurrentBaseUrl() + "/track/");
-  QUrlQuery q;
-  q.addQueryItem("id", QString::number(trackId));
-  q.addQueryItem("quality", "LOSSLESS");
-  url.setQuery(q);
+  cancelPendingTrack();
 
-  QNetworkRequest request(url);
-  QNetworkReply *reply = manager->get(request);
-  connect(reply, &QNetworkReply::finished, this,
-          &HifiClient::onTrackStreamFinished);
+  // Try top 3 endpoints in parallel
+  int count = 0;
+  for (int i = 0; i < apiEndpoints.size() && count < 3; ++i) {
+    int idx = (currentEndpointIndex + i) % apiEndpoints.size();
+    QString baseUrl = apiEndpoints[idx];
+
+    QUrl url(baseUrl + "/track/");
+    QUrlQuery q;
+    q.addQueryItem("id", QString::number(trackId));
+    q.addQueryItem("quality", "LOSSLESS");
+    url.setQuery(q);
+
+    QNetworkRequest request(url);
+    QNetworkReply *reply = manager->get(request);
+    pendingTrackReplies.append(reply);
+
+    connect(reply, &QNetworkReply::finished, this,
+            &HifiClient::onTrackStreamFinished);
+    count++;
+  }
 }
 
 void HifiClient::getAlbum(int albumId) {
@@ -94,16 +119,45 @@ void HifiClient::onSearchFinished() {
       tracks = root["items"].toArray();
     }
 
-    emit searchResults(tracks);
+    // If we got valid results, cancel other pending requests and emit
+    if (!tracks.isEmpty()) {
+      cancelPendingSearch();
+      emit searchResults(tracks);
+    } else {
+      // Empty results, treat as error/next? No, just wait for others or emit
+      // empty if all done. For now, if one returns empty, maybe others will
+      // return something? Let's remove this reply from pending and check if any
+      // left.
+      pendingSearchReplies.removeAll(reply);
+      reply->deleteLater();
+
+      if (pendingSearchReplies.isEmpty()) {
+        emit searchResults(QJsonArray());
+      }
+    }
   } else {
-    // Try next endpoint on error
-    QString errorMsg = reply->errorString();
-    qDebug() << "Search failed on" << getCurrentBaseUrl() << ":" << errorMsg;
-    rotateEndpoint();
-    // Retry
-    searchTracks(lastQuery);
+    // Error
+    pendingSearchReplies.removeAll(reply);
+    reply->deleteLater();
+
+    if (pendingSearchReplies.isEmpty()) {
+      // All failed
+      rotateEndpoint(); // Move to next set?
+      // emit errorOccurred("All search endpoints failed");
+      // Or just emit empty
+      emit searchResults(QJsonArray());
+    }
   }
-  reply->deleteLater();
+}
+
+void HifiClient::cancelPendingSearch() {
+  for (QNetworkReply *reply : pendingSearchReplies) {
+    if (reply->isRunning()) {
+      reply->abort();
+    }
+    reply->deleteLater();
+  }
+  pendingSearchReplies.clear();
 }
 
 void HifiClient::onTrackStreamFinished() {
@@ -150,19 +204,41 @@ void HifiClient::onTrackStreamFinished() {
     }
 
     if (!streamUrl.isEmpty()) {
+      cancelPendingTrack();
       emit trackStreamUrl(streamUrl);
     } else {
-      emit errorOccurred("Could not find stream URL in response");
+      // Failed to parse stream URL, treat as error for this reply
+      pendingTrackReplies.removeAll(reply);
+      reply->deleteLater();
+
+      if (pendingTrackReplies.isEmpty()) {
+        emit errorOccurred("Could not find stream URL in response");
+      }
     }
 
   } else {
-    QString errorMsg = reply->errorString();
-    qDebug() << "Track stream failed on" << getCurrentBaseUrl() << ":"
-             << errorMsg;
-    rotateEndpoint();
-    getTrackStream(lastTrackId);
+    pendingTrackReplies.removeAll(reply);
+    reply->deleteLater();
+
+    if (pendingTrackReplies.isEmpty()) {
+      QString errorMsg = reply->errorString();
+      qDebug() << "Track stream failed on all tried endpoints:" << errorMsg;
+      rotateEndpoint();
+      // Retry? Or just fail. Let's fail to avoid infinite loops if all down.
+      // getTrackStream(lastTrackId);
+      emit errorOccurred("Track stream failed: " + errorMsg);
+    }
   }
-  reply->deleteLater();
+}
+
+void HifiClient::cancelPendingTrack() {
+  for (QNetworkReply *reply : pendingTrackReplies) {
+    if (reply->isRunning()) {
+      reply->abort();
+    }
+    reply->deleteLater();
+  }
+  pendingTrackReplies.clear();
 }
 
 void HifiClient::onAlbumFinished() {

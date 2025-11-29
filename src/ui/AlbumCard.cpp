@@ -15,7 +15,7 @@ AlbumCard::AlbumCard(const QJsonObject &albumData, QWidget *parent)
   // Cover art
   coverLabel = new QLabel(this);
   coverLabel->setFixedSize(60, 60);
-  coverLabel->setScaledContents(true);
+  // coverLabel->setScaledContents(true); // Removed to prevent stretching
   coverLabel->setStyleSheet("background-color: #282828; border-radius: 4px;");
   coverLabel->setAlignment(Qt::AlignCenter);
   coverLabel->setText("♪"); // Placeholder
@@ -68,8 +68,8 @@ AlbumCard::AlbumCard(const QJsonObject &albumData, QWidget *parent)
 
 void AlbumCard::setCoverImage(const QPixmap &pixmap) {
   if (!pixmap.isNull()) {
-    coverLabel->setPixmap(
-        pixmap.scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    coverLabel->setPixmap(pixmap.scaled(60, 60, Qt::KeepAspectRatioByExpanding,
+                                        Qt::SmoothTransformation));
     coverLabel->setText("");
   }
 }
@@ -82,7 +82,7 @@ void AlbumCard::mousePressEvent(QMouseEvent *event) {
 }
 
 void AlbumCard::enterEvent(QEnterEvent *event) {
-  deleteButton->show();
+  deleteButton->setVisible(true);
   QWidget::enterEvent(event);
 }
 

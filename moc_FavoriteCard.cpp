@@ -43,7 +43,12 @@ template <> constexpr inline auto FavoriteCard::qt_create_metaobjectdata<qt_meta
         "clicked",
         "",
         "trackId",
-        "unfavoriteClicked"
+        "unfavoriteClicked",
+        "addToAlbumClicked",
+        "QJsonObject",
+        "track",
+        "favoriteToggled",
+        "isFavorite"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -54,6 +59,14 @@ template <> constexpr inline auto FavoriteCard::qt_create_metaobjectdata<qt_meta
         // Signal 'unfavoriteClicked'
         QtMocHelpers::SignalData<void(int)>(4, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::Int, 3 },
+        }}),
+        // Signal 'addToAlbumClicked'
+        QtMocHelpers::SignalData<void(const QJsonObject &)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 6, 7 },
+        }}),
+        // Signal 'favoriteToggled'
+        QtMocHelpers::SignalData<void(const QJsonObject &, bool)>(8, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 6, 7 }, { QMetaType::Bool, 9 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
@@ -80,6 +93,8 @@ void FavoriteCard::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         switch (_id) {
         case 0: _t->clicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
         case 1: _t->unfavoriteClicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 2: _t->addToAlbumClicked((*reinterpret_cast<std::add_pointer_t<QJsonObject>>(_a[1]))); break;
+        case 3: _t->favoriteToggled((*reinterpret_cast<std::add_pointer_t<QJsonObject>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<bool>>(_a[2]))); break;
         default: ;
         }
     }
@@ -87,6 +102,10 @@ void FavoriteCard::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         if (QtMocHelpers::indexOfMethod<void (FavoriteCard::*)(int )>(_a, &FavoriteCard::clicked, 0))
             return;
         if (QtMocHelpers::indexOfMethod<void (FavoriteCard::*)(int )>(_a, &FavoriteCard::unfavoriteClicked, 1))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (FavoriteCard::*)(const QJsonObject & )>(_a, &FavoriteCard::addToAlbumClicked, 2))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (FavoriteCard::*)(const QJsonObject & , bool )>(_a, &FavoriteCard::favoriteToggled, 3))
             return;
     }
 }
@@ -110,14 +129,14 @@ int FavoriteCard::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 2)
+        if (_id < 4)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 4;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 2)
+        if (_id < 4)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 2;
+        _id -= 4;
     }
     return _id;
 }
@@ -132,5 +151,17 @@ void FavoriteCard::clicked(int _t1)
 void FavoriteCard::unfavoriteClicked(int _t1)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 1, nullptr, _t1);
+}
+
+// SIGNAL 2
+void FavoriteCard::addToAlbumClicked(const QJsonObject & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 2, nullptr, _t1);
+}
+
+// SIGNAL 3
+void FavoriteCard::favoriteToggled(const QJsonObject & _t1, bool _t2)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 3, nullptr, _t1, _t2);
 }
 QT_WARNING_POP

@@ -26,6 +26,7 @@ public:
   void seek(qint64 positionMs);
   qint64 position() const;
   qint64 duration() const;
+  bool isPlaying() const;
 
 signals:
   void positionChanged(qint64 position);

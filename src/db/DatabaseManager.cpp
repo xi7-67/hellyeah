@@ -57,11 +57,28 @@ void DatabaseManager::initDatabase() {
     query.exec("ALTER TABLE favorites ADD COLUMN cover_path TEXT");
   }
 
+  // Migration: Ensure is_favorite exists
+  if (!query.exec("SELECT is_favorite FROM favorites LIMIT 1")) {
+    qDebug() << "Migrating database: adding is_favorite column";
+    query.exec(
+        "ALTER TABLE favorites ADD COLUMN is_favorite INTEGER DEFAULT 1");
+  }
+
   query.exec("CREATE TABLE IF NOT EXISTS albums ("
              "id INTEGER PRIMARY KEY AUTOINCREMENT, "
              "name TEXT, "
              "cover_id TEXT, "
+             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+             "name TEXT, "
+             "cover_id TEXT, "
+             "cover_path TEXT, "
              "created_at INTEGER)");
+
+  // Migration: Ensure cover_path exists for existing albums table
+  if (!query.exec("SELECT cover_path FROM albums LIMIT 1")) {
+    qDebug() << "Migrating database: adding cover_path column to albums";
+    query.exec("ALTER TABLE albums ADD COLUMN cover_path TEXT");
+  }
 
   query.exec("CREATE TABLE IF NOT EXISTS album_tracks ("
              "album_id INTEGER, "
@@ -72,10 +89,27 @@ void DatabaseManager::initDatabase() {
 
 bool DatabaseManager::addFavorite(const QJsonObject &track) {
   QSqlQuery query;
-  query.prepare("INSERT OR REPLACE INTO favorites (id, title, artist, album, "
-                "cover_id, json_data, cover_path) "
-                "VALUES (:id, :title, :artist, :album, :cover_id, :json_data, "
-                ":cover_path)");
+  // Check if exists first to preserve other fields if needed, or just REPLACE
+  // We want to set is_favorite = 1
+
+  // First, check if it exists
+  QSqlQuery check;
+  check.prepare("SELECT id FROM favorites WHERE id = :id");
+  check.bindValue(":id", track["id"].toInt());
+  if (check.exec() && check.next()) {
+    // Update
+    query.prepare(
+        "UPDATE favorites SET is_favorite = 1, title = :title, artist = "
+        ":artist, "
+        "album = :album, cover_id = :cover_id, json_data = :json_data "
+        "WHERE id = :id");
+  } else {
+    // Insert
+    query.prepare("INSERT INTO favorites (id, title, artist, album, cover_id, "
+                  "json_data, cover_path, is_favorite) "
+                  "VALUES (:id, :title, :artist, :album, :cover_id, "
+                  ":json_data, :cover_path, 1)");
+  }
 
   int id = track["id"].toInt();
   QString title = track["title"].toString();
@@ -89,15 +123,55 @@ bool DatabaseManager::addFavorite(const QJsonObject &track) {
   query.bindValue(":artist", artist);
   query.bindValue(":album", album);
   query.bindValue(":cover_id", coverId);
-  query.bindValue(":cover_id", coverId);
   query.bindValue(":json_data", jsonData);
 
   // Check if we have a cover path
   QString coverPath = "";
   if (track.contains("coverPath")) {
     coverPath = track["coverPath"].toString();
+    if (!coverPath.isEmpty()) {
+      // If we are updating, we might want to keep existing cover path if new
+      // one is empty? But here we bind it. Let's assume if we are adding a
+      // favorite, we might not have the path yet.
+    }
   }
-  query.bindValue(":cover_path", coverPath);
+  // If insert, we bind cover_path. If update, we didn't include cover_path in
+  // the UPDATE query above? Wait, the UPDATE query above didn't include
+  // cover_path. Let's fix the UPDATE query to include cover_path only if it's
+  // provided? Or just use REPLACE logic but ensure is_favorite=1.
+
+  // Actually, REPLACE INTO deletes and inserts, which might lose cover_path if
+  // we don't provide it? Yes. So explicit INSERT OR UPDATE is better.
+
+  // Let's simplify:
+  // If we are just toggling favorite, we might not have coverPath in the track
+  // object if it came from API. But we want to keep the local file path and
+  // cover path if they exist.
+
+  // So:
+  // 1. Upsert logic.
+
+  if (check.exec() && check.next()) {
+    // Exists. Update is_favorite.
+    // Also update metadata in case it changed?
+    query.prepare("UPDATE favorites SET is_favorite = 1, json_data = "
+                  ":json_data WHERE id = :id");
+    query.bindValue(":json_data", jsonData);
+    query.bindValue(":id", id);
+  } else {
+    // New insert
+    query.prepare("INSERT INTO favorites (id, title, artist, album, cover_id, "
+                  "json_data, cover_path, is_favorite) "
+                  "VALUES (:id, :title, :artist, :album, :cover_id, "
+                  ":json_data, :cover_path, 1)");
+    query.bindValue(":id", id);
+    query.bindValue(":title", title);
+    query.bindValue(":artist", artist);
+    query.bindValue(":album", album);
+    query.bindValue(":cover_id", coverId);
+    query.bindValue(":json_data", jsonData);
+    query.bindValue(":cover_path", coverPath);
+  }
 
   if (!query.exec()) {
     qDebug() << "addFavorite error:" << query.lastError();
@@ -107,39 +181,25 @@ bool DatabaseManager::addFavorite(const QJsonObject &track) {
 }
 
 bool DatabaseManager::removeFavorite(int trackId) {
-  // Get file paths before deleting the record
-  QString filePath = getFilePath(trackId);
-  QString coverPath = getCoverPath(trackId);
+  // Instead of deleting, we set is_favorite = 0
+  // We only delete if it's NOT in any album?
+  // For now, just set is_favorite = 0.
+  // We keep the files.
 
   QSqlQuery query;
-  query.prepare("DELETE FROM favorites WHERE id = :id");
+  query.prepare("UPDATE favorites SET is_favorite = 0 WHERE id = :id");
   query.bindValue(":id", trackId);
 
   if (query.exec()) {
-    // If DB deletion was successful, remove the files
-    if (!filePath.isEmpty() && QFile::exists(filePath)) {
-      if (QFile::remove(filePath)) {
-        qDebug() << "Deleted audio file:" << filePath;
-      } else {
-        qDebug() << "Failed to delete audio file:" << filePath;
-      }
-    }
-
-    if (!coverPath.isEmpty() && QFile::exists(coverPath)) {
-      if (QFile::remove(coverPath)) {
-        qDebug() << "Deleted cover file:" << coverPath;
-      } else {
-        qDebug() << "Failed to delete cover file:" << coverPath;
-      }
-    }
     return true;
   }
+  qDebug() << "removeFavorite error:" << query.lastError();
   return false;
 }
 
 bool DatabaseManager::isFavorite(int trackId) {
   QSqlQuery query;
-  query.prepare("SELECT id FROM favorites WHERE id = :id");
+  query.prepare("SELECT id FROM favorites WHERE id = :id AND is_favorite = 1");
   query.bindValue(":id", trackId);
   if (query.exec() && query.next()) {
     return true;
@@ -149,7 +209,8 @@ bool DatabaseManager::isFavorite(int trackId) {
 
 QList<QJsonObject> DatabaseManager::getFavorites() {
   QList<QJsonObject> list;
-  QSqlQuery query("SELECT json_data, file_path, cover_path FROM favorites");
+  QSqlQuery query("SELECT json_data, file_path, cover_path FROM favorites "
+                  "WHERE is_favorite = 1");
   while (query.next()) {
     QString jsonStr = query.value("json_data").toString();
     QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
@@ -229,11 +290,13 @@ QString DatabaseManager::getCoverPath(int trackId) {
   return QString();
 }
 
-int DatabaseManager::createAlbum(const QString &name) {
+int DatabaseManager::createAlbum(const QString &name,
+                                 const QString &coverPath) {
   QSqlQuery query;
-  query.prepare(
-      "INSERT INTO albums (name, created_at) VALUES (:name, :created_at)");
+  query.prepare("INSERT INTO albums (name, cover_path, created_at) VALUES "
+                "(:name, :cover_path, :created_at)");
   query.bindValue(":name", name);
+  query.bindValue(":cover_path", coverPath);
   query.bindValue(":created_at", QDateTime::currentSecsSinceEpoch());
 
   if (query.exec()) {
@@ -245,8 +308,8 @@ int DatabaseManager::createAlbum(const QString &name) {
 
 QList<QJsonObject> DatabaseManager::getAlbums() {
   QList<QJsonObject> list;
-  QSqlQuery query(
-      "SELECT id, name, cover_id FROM albums ORDER BY created_at DESC");
+  QSqlQuery query("SELECT id, name, cover_id, cover_path FROM albums ORDER BY "
+                  "created_at DESC");
   while (query.next()) {
     QJsonObject album;
     album["id"] = query.value(0).toInt();
@@ -261,6 +324,11 @@ QList<QJsonObject> DatabaseManager::getAlbums() {
     // first track later. For now, let's leave it empty or use a placeholder if
     // null.
     QString coverId = query.value(2).toString();
+    QString coverPath = query.value(3).toString();
+
+    if (!coverPath.isEmpty()) {
+      album["coverPath"] = coverPath;
+    }
     if (!coverId.isEmpty()) {
       album["cover"] = coverId;
     }
@@ -274,7 +342,35 @@ bool DatabaseManager::addTrackToAlbum(int albumId, const QJsonObject &track) {
   int trackId = track["id"].toInt();
 
   // Ensure track is in favorites database (so we can display it later)
-  addFavorite(track);
+  // But don't force it to be a favorite if it isn't one.
+  // We just need it in the table.
+
+  QSqlQuery check;
+  check.prepare("SELECT id FROM favorites WHERE id = :id");
+  check.bindValue(":id", trackId);
+  if (!check.exec() || !check.next()) {
+    // Not in DB, insert it with is_favorite = 0
+    QSqlQuery insert;
+    insert.prepare(
+        "INSERT INTO favorites (id, title, artist, album, cover_id, json_data, "
+        "is_favorite) "
+        "VALUES (:id, :title, :artist, :album, :cover_id, :json_data, 0)");
+
+    QString title = track["title"].toString();
+    QString artist = track["artist"].toObject()["name"].toString();
+    QString album = track["album"].toObject()["title"].toString();
+    QString coverId = track["album"].toObject()["cover"].toString();
+    QString jsonData = QJsonDocument(track).toJson(QJsonDocument::Compact);
+
+    insert.bindValue(":id", trackId);
+    insert.bindValue(":title", title);
+    insert.bindValue(":artist", artist);
+    insert.bindValue(":album", album);
+    insert.bindValue(":cover_id", coverId);
+    insert.bindValue(":json_data", jsonData);
+    insert.exec();
+  }
+  // If it is in DB, we leave is_favorite as is.
 
   // Check if album has a cover, if not, use this track's cover
   QSqlQuery checkCover;

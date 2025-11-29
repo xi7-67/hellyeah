@@ -1,4 +1,6 @@
 #include "FavoriteCard.hpp"
+#include <QAction>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QVBoxLayout>
 
@@ -102,13 +104,65 @@ void FavoriteCard::setCoverImage(const QPixmap &pixmap) {
 void FavoriteCard::mousePressEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     emit clicked(getTrackId());
+  } else if (event->button() == Qt::RightButton) {
+    // Context Menu
+    QMenu contextMenu(this);
+    contextMenu.setStyleSheet(
+        "QMenu { background-color: #282828; color: #fff; border: 1px solid "
+        "#333; }"
+        "QMenu::item { padding: 5px 20px; }"
+        "QMenu::item:selected { background-color: #333; }");
+
+    QAction *addToAlbumAction = contextMenu.addAction("Add to Album");
+    connect(addToAlbumAction, &QAction::triggered, this,
+            [this]() { emit addToAlbumClicked(m_trackData); });
+
+    contextMenu.exec(event->globalPosition().toPoint());
   }
   QWidget::mousePressEvent(event);
 }
 
+void FavoriteCard::setFavorite(bool isFavorite) {
+  if (isFavorite) {
+    unfavoriteButton->setText("★");
+    unfavoriteButton->setStyleSheet("QPushButton { "
+                                    "  color: #FFD700; "
+                                    "  border: none; "
+                                    "  font-size: 18px; "
+                                    "  background-color: rgba(0, 0, 0, 0.5); "
+                                    "  border-radius: 14px; "
+                                    "}"
+                                    "QPushButton:hover { "
+                                    "  color: #FFD700; "
+                                    "  background-color: #000000; "
+                                    "}");
+    // Disconnect previous connections to avoid duplicates or wrong logic
+    unfavoriteButton->disconnect();
+    connect(unfavoriteButton, &QPushButton::clicked, this,
+            [this]() { emit unfavoriteClicked(getTrackId()); });
+
+  } else {
+    unfavoriteButton->setText("☆");
+    unfavoriteButton->setStyleSheet("QPushButton { "
+                                    "  color: #b3b3b3; "
+                                    "  border: none; "
+                                    "  font-size: 18px; "
+                                    "  background-color: rgba(0, 0, 0, 0.5); "
+                                    "  border-radius: 14px; "
+                                    "}"
+                                    "QPushButton:hover { "
+                                    "  color: #FFD700; "
+                                    "  background-color: #000000; "
+                                    "}");
+    unfavoriteButton->disconnect();
+    connect(unfavoriteButton, &QPushButton::clicked, this,
+            [this]() { emit favoriteToggled(m_trackData, true); });
+  }
+}
+
 void FavoriteCard::enterEvent(QEnterEvent *event) {
   // Show star button when hovering over card
-  unfavoriteButton->show();
+  unfavoriteButton->setVisible(true);
   QWidget::enterEvent(event);
 }
 

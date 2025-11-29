@@ -17,10 +17,13 @@ public:
   void setCoverImage(const QPixmap &pixmap);
   int getTrackId() const { return m_trackData["id"].toInt(); }
   QJsonObject getTrackData() const { return m_trackData; }
+  void setFavorite(bool isFavorite);
 
 signals:
   void clicked(int trackId);
   void unfavoriteClicked(int trackId);
+  void addToAlbumClicked(const QJsonObject &track);
+  void favoriteToggled(const QJsonObject &track, bool isFavorite);
 
 protected:
   void mousePressEvent(QMouseEvent *event) override;

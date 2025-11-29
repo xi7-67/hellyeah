@@ -229,3 +229,10 @@ void AudioPlayer::setVolume(float volume) {
     ma_sound_set_volume(sound, volume);
   }
 }
+
+bool AudioPlayer::isPlaying() const {
+  if (isSoundInitialized) {
+    return ma_sound_is_playing(sound);
+  }
+  return false;
+}
