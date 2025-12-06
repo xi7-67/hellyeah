@@ -1,4 +1,5 @@
 #include "TrackItemWidget.hpp"
+#include <QDebug>
 #include <QStyle>
 
 TrackItemWidget::TrackItemWidget(const QJsonObject &trackData, bool isFavorite,
@@ -14,8 +15,32 @@ TrackItemWidget::TrackItemWidget(const QJsonObject &trackData, bool isFavorite,
   titleLabel = new QLabel(title, this);
   titleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
 
-  artistLabel = new QLabel(artist, this);
-  artistLabel->setStyleSheet("color: #888;");
+  // Make artist name clickable
+  artistLabel = new QPushButton(artist, this);
+  artistLabel->setFlat(true);
+  artistLabel->setCursor(Qt::PointingHandCursor);
+  artistLabel->setStyleSheet("QPushButton { "
+                             "  color: #888; "
+                             "  border: none; "
+                             "  text-align: left; "
+                             "  padding: 0; "
+                             "  font-size: 14px; "
+                             "}"
+                             "QPushButton:hover { "
+                             "  color: #FFFFFF; "
+                             "  text-decoration: underline; "
+                             "}");
+
+  // Extract artist ID and connect signal
+  QJsonObject artistObj = trackData["artist"].toObject();
+  int artistId = artistObj["id"].toInt();
+  qDebug() << "TrackItemWidget: Artist" << artist << "ID:" << artistId;
+
+  connect(artistLabel, &QPushButton::clicked, this, [this, artistId, artist]() {
+    qDebug() << "TrackItemWidget: Artist clicked:" << artist
+             << "ID:" << artistId;
+    emit artistClicked(artistId, artist);
+  });
 
   starButton = new QPushButton(this);
   starButton->setFixedSize(24, 24);
@@ -40,7 +65,7 @@ TrackItemWidget::TrackItemWidget(const QJsonObject &trackData, bool isFavorite,
   albumButton->setCursor(Qt::PointingHandCursor);
   albumButton->setStyleSheet("QPushButton { color: #888; border: none; "
                              "font-size: 18px; font-weight: bold; } "
-                             "QPushButton:hover { color: #1DB954; }");
+                             "QPushButton:hover { color: #FFFFFF; }");
   albumButton->setToolTip("Add to Album");
   albumButton->hide();
 

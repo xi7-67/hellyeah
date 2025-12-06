@@ -43,7 +43,10 @@ template <> constexpr inline auto TrackItemWidget::qt_create_metaobjectdata<qt_m
         "favoriteToggled",
         "",
         "isFavorite",
-        "addToAlbumClicked"
+        "addToAlbumClicked",
+        "artistClicked",
+        "artistId",
+        "artistName"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -53,6 +56,10 @@ template <> constexpr inline auto TrackItemWidget::qt_create_metaobjectdata<qt_m
         }}),
         // Signal 'addToAlbumClicked'
         QtMocHelpers::SignalData<void()>(4, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'artistClicked'
+        QtMocHelpers::SignalData<void(int, const QString &)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 6 }, { QMetaType::QString, 7 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -78,6 +85,7 @@ void TrackItemWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
         switch (_id) {
         case 0: _t->favoriteToggled((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
         case 1: _t->addToAlbumClicked(); break;
+        case 2: _t->artistClicked((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[2]))); break;
         default: ;
         }
     }
@@ -85,6 +93,8 @@ void TrackItemWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
         if (QtMocHelpers::indexOfMethod<void (TrackItemWidget::*)(bool )>(_a, &TrackItemWidget::favoriteToggled, 0))
             return;
         if (QtMocHelpers::indexOfMethod<void (TrackItemWidget::*)()>(_a, &TrackItemWidget::addToAlbumClicked, 1))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (TrackItemWidget::*)(int , const QString & )>(_a, &TrackItemWidget::artistClicked, 2))
             return;
     }
 }
@@ -108,14 +118,14 @@ int TrackItemWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 2)
+        if (_id < 3)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 3;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 2)
+        if (_id < 3)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 2;
+        _id -= 3;
     }
     return _id;
 }
@@ -130,5 +140,11 @@ void TrackItemWidget::favoriteToggled(bool _t1)
 void TrackItemWidget::addToAlbumClicked()
 {
     QMetaObject::activate(this, &staticMetaObject, 1, nullptr);
+}
+
+// SIGNAL 2
+void TrackItemWidget::artistClicked(int _t1, const QString & _t2)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 2, nullptr, _t1, _t2);
 }
 QT_WARNING_POP

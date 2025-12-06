@@ -21,6 +21,7 @@ public:
 signals:
   void favoriteToggled(bool isFavorite);
   void addToAlbumClicked();
+  void artistClicked(int artistId, const QString &artistName);
 
 protected:
   void enterEvent(QEnterEvent *event) override;
@@ -31,7 +32,7 @@ private:
   bool m_isFavorite;
 
   QLabel *titleLabel;
-  QLabel *artistLabel;
+  QPushButton *artistLabel;
   QPushButton *starButton;
   QPushButton *albumButton;
 

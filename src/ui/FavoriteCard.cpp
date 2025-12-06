@@ -1,5 +1,6 @@
 #include "FavoriteCard.hpp"
 #include <QAction>
+#include <QDebug>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QVBoxLayout>
@@ -7,7 +8,7 @@
 FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
     : QWidget(parent), m_trackData(trackData) {
 
-  setFixedSize(120, 180); // Increased height for wrapped text
+  setFixedSize(140, 220); // Increased dimensions for better readability
   setCursor(Qt::PointingHandCursor);
 
   QVBoxLayout *layout = new QVBoxLayout(this);
@@ -17,7 +18,7 @@ FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
 
   // Cover art (larger, square)
   coverLabel = new QLabel(this);
-  coverLabel->setFixedSize(100, 100);
+  coverLabel->setFixedSize(120, 120);
   coverLabel->setScaledContents(true);
   coverLabel->setStyleSheet("background-color: #282828; border-radius: 6px;");
   coverLabel->setAlignment(Qt::AlignCenter);
@@ -34,17 +35,40 @@ FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
   QString title = trackData["title"].toString();
   titleLabel = new QLabel(title, this);
   titleLabel->setStyleSheet(
-      "font-weight: bold; font-size: 11px; color: #fff;"); // Smaller font
+      "font-weight: bold; font-size: 14px; color: #fff;"); // Smaller font
   titleLabel->setWordWrap(true);                           // Enable word wrap
   titleLabel->setAlignment(Qt::AlignCenter);
-  titleLabel->setFixedHeight(40); // More height for wrapped text
+  titleLabel->setFixedHeight(50);             // More height for wrapped text
+  titleLabel->setContentsMargins(4, 0, 4, 0); // Add padding
 
   // Artist
   QString artist = trackData["artist"].toObject()["name"].toString();
-  artistLabel = new QLabel(artist, this);
-  artistLabel->setStyleSheet("font-size: 11px; color: #b3b3b3;");
-  artistLabel->setWordWrap(false);
-  artistLabel->setAlignment(Qt::AlignCenter);
+
+  // Make artist name clickable
+  artistLabel = new QPushButton(artist, this);
+  artistLabel->setFlat(true);
+  artistLabel->setCursor(Qt::PointingHandCursor);
+  artistLabel->setStyleSheet("QPushButton { "
+                             "  font-size: 12px; "
+                             "  color: #b3b3b3; "
+                             "  border: none; "
+                             "  text-align: center; "
+                             "  padding: 0; "
+                             "}"
+                             "QPushButton:hover { "
+                             "  color: #FFFFFF; "
+                             "  text-decoration: underline; "
+                             "}");
+
+  // Extract artist ID and connect signal
+  QJsonObject artistObj = trackData["artist"].toObject();
+  int artistId = artistObj["id"].toInt();
+  qDebug() << "FavoriteCard: Artist" << artist << "ID:" << artistId;
+
+  connect(artistLabel, &QPushButton::clicked, this, [this, artistId, artist]() {
+    qDebug() << "FavoriteCard: Artist clicked:" << artist << "ID:" << artistId;
+    emit artistClicked(artistId, artist);
+  });
   artistLabel->setMaximumWidth(110);
 
   textLayout->addWidget(titleLabel);
@@ -78,8 +102,8 @@ FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
       "}");
 
   // Position button on the top-right
-  unfavoriteButton->move(92, 10); // 120 - 28 = 92 for right alignment
-  unfavoriteButton->hide();       // Hidden by default, shown on card hover
+  unfavoriteButton->move(112, 10); // 140 - 28 = 112 for right alignment
+  unfavoriteButton->hide();        // Hidden by default, shown on card hover
 
   connect(unfavoriteButton, &QPushButton::clicked, this,
           [this]() { emit unfavoriteClicked(getTrackId()); });
@@ -96,13 +120,20 @@ FavoriteCard::FavoriteCard(const QJsonObject &trackData, QWidget *parent)
 void FavoriteCard::setCoverImage(const QPixmap &pixmap) {
   if (!pixmap.isNull()) {
     coverLabel->setPixmap(
-        pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        pixmap.scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     coverLabel->setText("");
   }
 }
 
 void FavoriteCard::mousePressEvent(QMouseEvent *event) {
+  // Don't handle click if it's on the artist button
   if (event->button() == Qt::LeftButton) {
+    QWidget *child = childAt(event->pos());
+    if (child == artistLabel) {
+      // Let the artist button handle it
+      QWidget::mousePressEvent(event);
+      return;
+    }
     emit clicked(getTrackId());
   } else if (event->button() == Qt::RightButton) {
     // Context Menu
@@ -117,7 +148,7 @@ void FavoriteCard::mousePressEvent(QMouseEvent *event) {
     connect(addToAlbumAction, &QAction::triggered, this,
             [this]() { emit addToAlbumClicked(m_trackData); });
 
-    contextMenu.exec(event->globalPosition().toPoint());
+    contextMenu.exec(event->globalPos());
   }
   QWidget::mousePressEvent(event);
 }

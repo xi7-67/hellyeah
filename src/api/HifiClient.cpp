@@ -258,3 +258,146 @@ void HifiClient::onAlbumFinished() {
   }
   reply->deleteLater();
 }
+
+void HifiClient::getArtist(int artistId) {
+  lastArtistId = artistId;
+  lastRequestType = RequestType::Artist;
+
+  QUrl url(getCurrentBaseUrl() + "/artist/");
+  QUrlQuery q;
+  q.addQueryItem("id", QString::number(artistId));
+  url.setQuery(q);
+
+  QNetworkRequest request(url);
+  QNetworkReply *reply = manager->get(request);
+  connect(reply, &QNetworkReply::finished, this, &HifiClient::onArtistFinished);
+}
+
+void HifiClient::getArtistTopTracks(int artistId) {
+  lastArtistId = artistId;
+  lastRequestType = RequestType::ArtistTopTracks;
+
+  QUrl url(getCurrentBaseUrl() + QString("/artist/%1/toptracks").arg(artistId));
+
+  QNetworkRequest request(url);
+  QNetworkReply *reply = manager->get(request);
+  connect(reply, &QNetworkReply::finished, this,
+          &HifiClient::onArtistTopTracksFinished);
+}
+
+void HifiClient::getArtistAlbums(int artistId) {
+  lastArtistId = artistId;
+  lastRequestType = RequestType::ArtistAlbums;
+
+  QUrl url(getCurrentBaseUrl() + QString("/artist/%1/albums").arg(artistId));
+
+  QNetworkRequest request(url);
+  QNetworkReply *reply = manager->get(request);
+  connect(reply, &QNetworkReply::finished, this,
+          &HifiClient::onArtistAlbumsFinished);
+}
+
+void HifiClient::onArtistFinished() {
+  QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+  if (!reply)
+    return;
+
+  if (reply->error() == QNetworkReply::NoError) {
+    QByteArray data = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonObject obj = doc.object();
+    qDebug() << "HifiClient: Artist response keys:" << obj.keys();
+    if (obj.contains("tracks"))
+      qDebug() << "HifiClient: Response contains 'tracks'";
+    if (obj.contains("albums"))
+      qDebug() << "HifiClient: Response contains 'albums'";
+
+    emit artistLoaded(obj);
+  } else {
+    int statusCode =
+        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QString errorMsg = reply->errorString();
+    qDebug() << "Artist failed on" << getCurrentBaseUrl() << ":" << errorMsg
+             << "Code:" << statusCode;
+
+    if (statusCode == 404) {
+      qDebug() << "Artist not found (404), stopping retries.";
+      emit artistLoaded(
+          QJsonObject()); // Emit empty to signal failure/not found
+    } else {
+      rotateEndpoint();
+      getArtist(lastArtistId);
+    }
+  }
+  reply->deleteLater();
+}
+
+void HifiClient::onArtistTopTracksFinished() {
+  QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+  if (!reply)
+    return;
+
+  if (reply->error() == QNetworkReply::NoError) {
+    QByteArray data = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    QJsonArray tracks;
+    if (doc.isArray()) {
+      tracks = doc.array();
+    } else if (doc.object().contains("items")) {
+      tracks = doc.object()["items"].toArray();
+    }
+
+    emit artistTopTracksLoaded(tracks);
+  } else {
+    int statusCode =
+        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QString errorMsg = reply->errorString();
+    qDebug() << "Artist top tracks failed on" << getCurrentBaseUrl() << ":"
+             << errorMsg << "Code:" << statusCode;
+
+    if (statusCode == 404) {
+      qDebug() << "Artist top tracks not found (404), stopping retries.";
+      emit artistTopTracksLoaded(QJsonArray());
+    } else {
+      rotateEndpoint();
+      getArtistTopTracks(lastArtistId);
+    }
+  }
+  reply->deleteLater();
+}
+
+void HifiClient::onArtistAlbumsFinished() {
+  QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+  if (!reply)
+    return;
+
+  if (reply->error() == QNetworkReply::NoError) {
+    QByteArray data = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    QJsonArray albums;
+    if (doc.isArray()) {
+      albums = doc.array();
+    } else if (doc.object().contains("items")) {
+      albums = doc.object()["items"].toArray();
+    }
+
+    emit artistAlbumsLoaded(albums);
+  } else {
+    int statusCode =
+        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QString errorMsg = reply->errorString();
+    qDebug() << "Artist albums failed on" << getCurrentBaseUrl() << ":"
+             << errorMsg << "Code:" << statusCode;
+
+    if (statusCode == 404) {
+      qDebug() << "Artist albums not found (404), stopping retries.";
+      emit artistAlbumsLoaded(QJsonArray());
+    } else {
+      rotateEndpoint();
+      getArtistAlbums(lastArtistId);
+    }
+  }
+  reply->deleteLater();
+}

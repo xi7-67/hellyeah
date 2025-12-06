@@ -24,6 +24,7 @@ signals:
   void unfavoriteClicked(int trackId);
   void addToAlbumClicked(const QJsonObject &track);
   void favoriteToggled(const QJsonObject &track, bool isFavorite);
+  void artistClicked(int artistId, const QString &artistName);
 
 protected:
   void mousePressEvent(QMouseEvent *event) override;
@@ -34,6 +35,6 @@ private:
   QJsonObject m_trackData;
   QLabel *coverLabel;
   QLabel *titleLabel;
-  QLabel *artistLabel;
+  QPushButton *artistLabel;
   QPushButton *unfavoriteButton;
 };

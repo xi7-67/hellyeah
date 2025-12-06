@@ -1,0 +1,9 @@
+g++ -c -pipe -O2 -std=gnu++1z -flto -fno-fat-lto-objects -Wall -Wextra -D_REENTRANT -fPIC -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_SQL_LIB -DQT_CORE_LIB -I. -I/usr/include/qt -I/usr/include/qt/QtWidgets -I/usr/include/qt/QtGui -I/usr/include/qt/QtNetwork -I/usr/include/qt/QtSql -I/usr/include/qt/QtCore -I. -I/usr/lib/qt/mkspecs/linux-g++ -o FavoriteCard.o src/ui/FavoriteCard.cpp
+src/ui/FavoriteCard.cpp: In constructor ‘FavoriteCard::FavoriteCard(const QJsonObject&, QWidget*)’:
+src/ui/FavoriteCard.cpp:71:16: error: ‘class QPushButton’ has no member named ‘setWordWrap’
+   71 |   artistLabel->setWordWrap(false);
+      |                ^~~~~~~~~~~
+src/ui/FavoriteCard.cpp:72:16: error: ‘class QPushButton’ has no member named ‘setAlignment’
+   72 |   artistLabel->setAlignment(Qt::AlignCenter);
+      |                ^~~~~~~~~~~~
+make: *** [Makefile:606: FavoriteCard.o] Error 1

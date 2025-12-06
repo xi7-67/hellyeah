@@ -19,17 +19,26 @@ public:
   void searchTracks(const QString &query);
   void getTrackStream(int trackId);
   void getAlbum(int albumId);
+  void getArtist(int artistId);
+  void getArtistTopTracks(int artistId);
+  void getArtistAlbums(int artistId);
 
 signals:
   void searchResults(const QJsonArray &tracks);
   void trackStreamUrl(const QString &url);
   void albumLoaded(const QJsonObject &albumData);
+  void artistLoaded(const QJsonObject &artistData);
+  void artistTopTracksLoaded(const QJsonArray &tracks);
+  void artistAlbumsLoaded(const QJsonArray &albums);
   void errorOccurred(const QString &message);
 
 private slots:
   void onSearchFinished();
   void onTrackStreamFinished();
   void onAlbumFinished();
+  void onArtistFinished();
+  void onArtistTopTracksFinished();
+  void onArtistAlbumsFinished();
 
 private:
   QNetworkAccessManager *manager;
@@ -43,7 +52,16 @@ private:
   QString lastQuery;
   int lastTrackId = -1;
   int lastAlbumId = -1;
-  enum class RequestType { None, Search, Track, Album };
+  int lastArtistId = -1;
+  enum class RequestType {
+    None,
+    Search,
+    Track,
+    Album,
+    Artist,
+    ArtistTopTracks,
+    ArtistAlbums
+  };
   RequestType lastRequestType = RequestType::None;
 
   // Parallel search

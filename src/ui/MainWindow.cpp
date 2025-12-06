@@ -33,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent)
             }
           });
 
+  connect(player, &AudioPlayer::playbackFinished, this,
+          &MainWindow::onNextClicked);
+
   QWidget *centralWidget = new QWidget(this);
   setCentralWidget(centralWidget);
 
@@ -195,9 +198,17 @@ MainWindow::MainWindow(QWidget *parent)
   albumTracksScrollArea->setWidget(albumTracksContainer);
   albumViewLayout->addWidget(albumTracksScrollArea);
 
+  // ARTIST PROFILE PAGE
+  artistPage = new ArtistProfilePage(this);
+  connect(artistPage, &ArtistProfilePage::backClicked, this,
+          &MainWindow::onHomeClicked);
+  connect(artistPage, &ArtistProfilePage::trackClicked, this,
+          [this](int trackId) { onFavoriteCardClicked(trackId); });
+
   pageStack->addWidget(homePage);   // index 0 - Home
   pageStack->addWidget(searchPage); // index 1 - Search Results
   pageStack->addWidget(albumPage);  // index 2 - Album View
+  pageStack->addWidget(artistPage); // index 3 - Artist Profile
   pageStack->setCurrentIndex(0);    // Start with Home
   // Shared UI (Cover + Controls)
   coverLabel = new QLabel(this);
@@ -215,12 +226,41 @@ MainWindow::MainWindow(QWidget *parent)
   playerTitleLabel->setMaximumWidth(200);
   playerTitleLabel->hide();
 
-  playerArtistLabel = new QLabel("", this);
-  playerArtistLabel->setStyleSheet("font-size: 12px; color: #b3b3b3;");
-  playerArtistLabel->setAlignment(Qt::AlignCenter);
-  playerArtistLabel->setWordWrap(true);
+  playerArtistLabel = new QPushButton("", this);
+  playerArtistLabel->setFlat(true);
+  playerArtistLabel->setCursor(Qt::PointingHandCursor);
+  playerArtistLabel->setStyleSheet("QPushButton { "
+                                   "  font-size: 12px; "
+                                   "  color: #b3b3b3; "
+                                   "  border: none; "
+                                   "  text-align: center; "
+                                   "}"
+                                   "QPushButton:hover { "
+                                   "  color: #FFFFFF; "
+                                   "  text-decoration: underline; "
+                                   "}");
   playerArtistLabel->setMaximumWidth(200);
   playerArtistLabel->hide();
+  connect(playerArtistLabel, &QPushButton::clicked, this, [this]() {
+    qDebug() << "MainWindow: playerArtistLabel clicked. currentTrackId:"
+             << currentTrackId;
+    // We need the current track's artist ID.
+    // We can store it in a member variable or retrieve from current track info
+    // if available. For now, let's look at onTrackSelected to see where we have
+    // the info.
+    if (currentTrackId != -1 && trackCache.contains(currentTrackId)) {
+      QJsonObject track = trackCache[currentTrackId];
+      QJsonObject artist = track["artist"].toObject();
+      int artistId = artist["id"].toInt();
+      QString artistName = artist["name"].toString();
+      qDebug() << "MainWindow: Navigating to artist:" << artistName
+               << "ID:" << artistId;
+      onArtistClicked(artistId, artistName);
+    } else {
+      qDebug()
+          << "MainWindow: Cannot navigate. TrackId invalid or not in cache.";
+    }
+  });
 
   // Play/Pause Button
   playPauseButton = new QPushButton(this);
@@ -432,6 +472,8 @@ MainWindow::MainWindow(QWidget *parent)
                       });
               connect(widget, &TrackItemWidget::addToAlbumClicked, this,
                       [this, track]() { onAddToAlbumClicked(track); });
+              connect(widget, &TrackItemWidget::artistClicked, this,
+                      &MainWindow::onArtistClicked);
 
               resultsList->setItemWidget(item, widget);
             }
@@ -442,6 +484,19 @@ MainWindow::MainWindow(QWidget *parent)
           &MainWindow::onTrackStreamUrl);
   connect(hifiClient, &HifiClient::errorOccurred, this,
           &MainWindow::onApiError); // Changed client to hifiClient
+
+  // Artist profile signals
+  connect(hifiClient, &HifiClient::artistLoaded, this,
+          [this](const QJsonObject &artistData) {
+            qDebug() << "MainWindow: Artist loaded:" << artistData;
+            artistPage->setArtistData(artistData);
+            statusLabel->setText("Loaded artist profile");
+          });
+  connect(
+      hifiClient, &HifiClient::artistTopTracksLoaded, this,
+      [this](const QJsonArray &tracks) { artistPage->setTopTracks(tracks); });
+  connect(hifiClient, &HifiClient::artistAlbumsLoaded, this,
+          [this](const QJsonArray &albums) { artistPage->setAlbums(albums); });
 
   connect(resultsList, &QListWidget::itemDoubleClicked, this,
           &MainWindow::onTrackSelected);
@@ -518,9 +573,13 @@ void MainWindow::onTrackSelected(QListWidgetItem *item) {
 
     // Update player info
     playerTitleLabel->setText(title);
+    playerTitleLabel->setText(title);
     playerArtistLabel->setText(artist);
     playerTitleLabel->show();
     playerArtistLabel->show();
+
+    // Store current track ID for artist navigation
+    currentTrackId = trackId;
 
     // Fetch cover for the selected track
     if (track.contains("album")) {
@@ -702,9 +761,18 @@ void MainWindow::onAlbumCardClicked(int albumId) {
                 onFavoriteToggled(track, false);
               });
       connect(card, &FavoriteCard::favoriteToggled, this,
-              [this](const QJsonObject &t, bool isFav) {
-                onFavoriteToggled(t, isFav);
+              [this, track](const QJsonObject &, bool isFav) {
+                // This toggles track on/off from favorites
+                if (!isFav) {
+                  DatabaseManager::instance().removeFavorite(
+                      track["id"].toInt());
+                } else {
+                  DatabaseManager::instance().addFavorite(track);
+                }
+                refreshFavoritesList(); // Refresh favorites if in home view
               });
+      connect(card, &FavoriteCard::artistClicked, this,
+              &MainWindow::onArtistClicked);
 
       // Check if we have a cover image for this track
       QString coverPath = DatabaseManager::instance().getCoverPath(trackId);
@@ -1141,11 +1209,12 @@ void MainWindow::refreshFavoritesList() {
       currentTrackIndex = currentPlaylist.indexOf(id);
       onFavoriteCardClicked(id);
     });
-    connect(card, &FavoriteCard::unfavoriteClicked, this,
-            [this, track](int trackId) {
-              DatabaseManager::instance().removeFavorite(trackId);
-              refreshFavoritesList();
-            });
+    connect(card, &FavoriteCard::unfavoriteClicked, this, [this, id]() {
+      DatabaseManager::instance().removeFavorite(id);
+      refreshFavoritesList();
+    });
+    connect(card, &FavoriteCard::artistClicked, this,
+            &MainWindow::onArtistClicked);
 
     favouritesGrid->addWidget(card, row, col);
     favoriteCards.append(card);
@@ -1198,6 +1267,7 @@ void MainWindow::onHomeClicked() {
 
 void MainWindow::onFavoriteCardClicked(int trackId) {
   // Update player info
+  currentTrackId = trackId;
   QJsonObject track;
 
   if (trackCache.contains(trackId)) {
@@ -1287,6 +1357,7 @@ void MainWindow::onFavoriteCardClicked(int trackId) {
     statusLabel->setText("Playing from local cache...");
     qDebug() << "Playing from local file:" << localPath;
     player->playUrl(QUrl::fromLocalFile(localPath).toString());
+    playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
     // Show cover
     QString coverPath = DatabaseManager::instance().getCoverPath(trackId);
     if (!coverPath.isEmpty() && QFile::exists(coverPath)) {
@@ -1363,4 +1434,24 @@ void MainWindow::onPrevClicked() {
   int prevTrackId = currentPlaylist[prevIndex];
 
   onFavoriteCardClicked(prevTrackId);
+}
+
+void MainWindow::onArtistClicked(int artistId, const QString &artistName) {
+  qDebug() << "MainWindow: onArtistClicked" << artistName << "ID:" << artistId;
+  currentArtistId = artistId;
+
+  // Clear previous artist data
+  artistPage->setArtistData(QJsonObject());
+  artistPage->setTopTracks(QJsonArray());
+  artistPage->setAlbums(QJsonArray());
+
+  // Navigate to artist page
+  pageStack->setCurrentIndex(3);
+
+  // Fetch artist data
+  hifiClient->getArtist(artistId);
+  hifiClient->getArtistTopTracks(artistId);
+  hifiClient->getArtistAlbums(artistId);
+
+  statusLabel->setText("Loading artist: " + artistName + "...");
 }

@@ -49,11 +49,19 @@ template <> constexpr inline auto HifiClient::qt_create_metaobjectdata<qt_meta_t
         "albumLoaded",
         "QJsonObject",
         "albumData",
+        "artistLoaded",
+        "artistData",
+        "artistTopTracksLoaded",
+        "artistAlbumsLoaded",
+        "albums",
         "errorOccurred",
         "message",
         "onSearchFinished",
         "onTrackStreamFinished",
-        "onAlbumFinished"
+        "onAlbumFinished",
+        "onArtistFinished",
+        "onArtistTopTracksFinished",
+        "onArtistAlbumsFinished"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -69,16 +77,34 @@ template <> constexpr inline auto HifiClient::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SignalData<void(const QJsonObject &)>(7, 2, QMC::AccessPublic, QMetaType::Void, {{
             { 0x80000000 | 8, 9 },
         }}),
+        // Signal 'artistLoaded'
+        QtMocHelpers::SignalData<void(const QJsonObject &)>(10, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 8, 11 },
+        }}),
+        // Signal 'artistTopTracksLoaded'
+        QtMocHelpers::SignalData<void(const QJsonArray &)>(12, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 3, 4 },
+        }}),
+        // Signal 'artistAlbumsLoaded'
+        QtMocHelpers::SignalData<void(const QJsonArray &)>(13, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 3, 14 },
+        }}),
         // Signal 'errorOccurred'
-        QtMocHelpers::SignalData<void(const QString &)>(10, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 11 },
+        QtMocHelpers::SignalData<void(const QString &)>(15, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 16 },
         }}),
         // Slot 'onSearchFinished'
-        QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(17, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'onTrackStreamFinished'
-        QtMocHelpers::SlotData<void()>(13, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(18, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'onAlbumFinished'
-        QtMocHelpers::SlotData<void()>(14, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(19, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onArtistFinished'
+        QtMocHelpers::SlotData<void()>(20, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onArtistTopTracksFinished'
+        QtMocHelpers::SlotData<void()>(21, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onArtistAlbumsFinished'
+        QtMocHelpers::SlotData<void()>(22, 2, QMC::AccessPrivate, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -105,10 +131,16 @@ void HifiClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 0: _t->searchResults((*reinterpret_cast<std::add_pointer_t<QJsonArray>>(_a[1]))); break;
         case 1: _t->trackStreamUrl((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
         case 2: _t->albumLoaded((*reinterpret_cast<std::add_pointer_t<QJsonObject>>(_a[1]))); break;
-        case 3: _t->errorOccurred((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 4: _t->onSearchFinished(); break;
-        case 5: _t->onTrackStreamFinished(); break;
-        case 6: _t->onAlbumFinished(); break;
+        case 3: _t->artistLoaded((*reinterpret_cast<std::add_pointer_t<QJsonObject>>(_a[1]))); break;
+        case 4: _t->artistTopTracksLoaded((*reinterpret_cast<std::add_pointer_t<QJsonArray>>(_a[1]))); break;
+        case 5: _t->artistAlbumsLoaded((*reinterpret_cast<std::add_pointer_t<QJsonArray>>(_a[1]))); break;
+        case 6: _t->errorOccurred((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 7: _t->onSearchFinished(); break;
+        case 8: _t->onTrackStreamFinished(); break;
+        case 9: _t->onAlbumFinished(); break;
+        case 10: _t->onArtistFinished(); break;
+        case 11: _t->onArtistTopTracksFinished(); break;
+        case 12: _t->onArtistAlbumsFinished(); break;
         default: ;
         }
     }
@@ -119,7 +151,13 @@ void HifiClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
             return;
         if (QtMocHelpers::indexOfMethod<void (HifiClient::*)(const QJsonObject & )>(_a, &HifiClient::albumLoaded, 2))
             return;
-        if (QtMocHelpers::indexOfMethod<void (HifiClient::*)(const QString & )>(_a, &HifiClient::errorOccurred, 3))
+        if (QtMocHelpers::indexOfMethod<void (HifiClient::*)(const QJsonObject & )>(_a, &HifiClient::artistLoaded, 3))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (HifiClient::*)(const QJsonArray & )>(_a, &HifiClient::artistTopTracksLoaded, 4))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (HifiClient::*)(const QJsonArray & )>(_a, &HifiClient::artistAlbumsLoaded, 5))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (HifiClient::*)(const QString & )>(_a, &HifiClient::errorOccurred, 6))
             return;
     }
 }
@@ -143,14 +181,14 @@ int HifiClient::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 7)
+        if (_id < 13)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 7;
+        _id -= 13;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 7)
+        if (_id < 13)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 7;
+        _id -= 13;
     }
     return _id;
 }
@@ -174,8 +212,26 @@ void HifiClient::albumLoaded(const QJsonObject & _t1)
 }
 
 // SIGNAL 3
-void HifiClient::errorOccurred(const QString & _t1)
+void HifiClient::artistLoaded(const QJsonObject & _t1)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 3, nullptr, _t1);
+}
+
+// SIGNAL 4
+void HifiClient::artistTopTracksLoaded(const QJsonArray & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 4, nullptr, _t1);
+}
+
+// SIGNAL 5
+void HifiClient::artistAlbumsLoaded(const QJsonArray & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 5, nullptr, _t1);
+}
+
+// SIGNAL 6
+void HifiClient::errorOccurred(const QString & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 6, nullptr, _t1);
 }
 QT_WARNING_POP

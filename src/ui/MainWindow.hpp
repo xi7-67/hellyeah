@@ -21,6 +21,7 @@
 #include "../net/DownloadManager.hpp"
 #include "../player/AudioPlayer.hpp"
 #include "AlbumCard.hpp"
+#include "ArtistProfilePage.hpp"
 #include "CreateAlbumDialog.hpp"
 #include "FavoriteCard.hpp"
 #include "TrackItemWidget.hpp"
@@ -56,6 +57,7 @@ private slots:
   void onAlbumDeleteClicked(int albumId);
   void onNextClicked();
   void onPrevClicked();
+  void onArtistClicked(int artistId, const QString &artistName);
 
 private:
   void generateAlbumCoverGrid(int albumId, AlbumCard *card);
@@ -74,13 +76,14 @@ private:
   QLabel *statusLabel;
   QLabel *coverLabel;
   QLabel *playerTitleLabel;
-  QLabel *playerArtistLabel;
+  QPushButton *playerArtistLabel;
 
   QNetworkAccessManager *imageManager;
   bool isSeeking = false;
 
   QMap<int, QJsonObject> trackCache; // Cache tracks by ID
   int currentTrackIdForStream = -1;
+  int currentTrackId = -1;
 
   // Navigation context
   QList<int> currentPlaylist; // Track IDs in current context
@@ -117,4 +120,8 @@ private:
 
   // Search page widgets
   QWidget *searchPage;
+
+  // Artist page
+  ArtistProfilePage *artistPage;
+  int currentArtistId = -1;
 };

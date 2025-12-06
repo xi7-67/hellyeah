@@ -15,7 +15,8 @@ SOURCES += src/main.cpp \
            src/ui/AlbumCard.cpp \
            src/db/DatabaseManager.cpp \
            src/net/DownloadManager.cpp \
-           src/ui/CreateAlbumDialog.cpp
+           src/ui/CreateAlbumDialog.cpp \
+           src/ui/ArtistProfilePage.cpp
 
 HEADERS += src/api/HifiClient.hpp \
            src/player/AudioPlayer.hpp \
@@ -25,7 +26,8 @@ HEADERS += src/api/HifiClient.hpp \
            src/ui/AlbumCard.hpp \
            src/db/DatabaseManager.hpp \
            src/net/DownloadManager.hpp \
-           src/ui/CreateAlbumDialog.hpp
+           src/ui/CreateAlbumDialog.hpp \
+           src/ui/ArtistProfilePage.hpp
 
 # Test target
 test {

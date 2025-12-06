@@ -61,7 +61,8 @@ SOURCES       = src/main.cpp \
 		src/ui/AlbumCard.cpp \
 		src/db/DatabaseManager.cpp \
 		src/net/DownloadManager.cpp \
-		src/ui/CreateAlbumDialog.cpp moc_HifiClient.cpp \
+		src/ui/CreateAlbumDialog.cpp \
+		src/ui/ArtistProfilePage.cpp moc_HifiClient.cpp \
 		moc_AudioPlayer.cpp \
 		moc_MainWindow.cpp \
 		moc_TrackItemWidget.cpp \
@@ -69,7 +70,8 @@ SOURCES       = src/main.cpp \
 		moc_AlbumCard.cpp \
 		moc_DatabaseManager.cpp \
 		moc_DownloadManager.cpp \
-		moc_CreateAlbumDialog.cpp
+		moc_CreateAlbumDialog.cpp \
+		moc_ArtistProfilePage.cpp
 OBJECTS       = main.o \
 		HifiClient.o \
 		AudioPlayer.o \
@@ -80,6 +82,7 @@ OBJECTS       = main.o \
 		DatabaseManager.o \
 		DownloadManager.o \
 		CreateAlbumDialog.o \
+		ArtistProfilePage.o \
 		moc_HifiClient.o \
 		moc_AudioPlayer.o \
 		moc_MainWindow.o \
@@ -88,7 +91,8 @@ OBJECTS       = main.o \
 		moc_AlbumCard.o \
 		moc_DatabaseManager.o \
 		moc_DownloadManager.o \
-		moc_CreateAlbumDialog.o
+		moc_CreateAlbumDialog.o \
+		moc_ArtistProfilePage.o
 DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/qt6/mkspecs/common/unix.conf \
 		/usr/lib/qt6/mkspecs/common/linux.conf \
@@ -394,7 +398,8 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/ui/AlbumCard.hpp \
 		src/db/DatabaseManager.hpp \
 		src/net/DownloadManager.hpp \
-		src/ui/CreateAlbumDialog.hpp src/main.cpp \
+		src/ui/CreateAlbumDialog.hpp \
+		src/ui/ArtistProfilePage.hpp src/main.cpp \
 		src/api/HifiClient.cpp \
 		src/player/AudioPlayer.cpp \
 		src/ui/MainWindow.cpp \
@@ -403,7 +408,8 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/ui/AlbumCard.cpp \
 		src/db/DatabaseManager.cpp \
 		src/net/DownloadManager.cpp \
-		src/ui/CreateAlbumDialog.cpp
+		src/ui/CreateAlbumDialog.cpp \
+		src/ui/ArtistProfilePage.cpp
 QMAKE_TARGET  = hellyeah
 DESTDIR       = 
 TARGET        = hellyeah
@@ -1037,8 +1043,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/qt6/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/api/HifiClient.hpp src/player/AudioPlayer.hpp src/ui/MainWindow.hpp src/ui/TrackItemWidget.hpp src/ui/FavoriteCard.hpp src/ui/AlbumCard.hpp src/db/DatabaseManager.hpp src/net/DownloadManager.hpp src/ui/CreateAlbumDialog.hpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/main.cpp src/api/HifiClient.cpp src/player/AudioPlayer.cpp src/ui/MainWindow.cpp src/ui/TrackItemWidget.cpp src/ui/FavoriteCard.cpp src/ui/AlbumCard.cpp src/db/DatabaseManager.cpp src/net/DownloadManager.cpp src/ui/CreateAlbumDialog.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/api/HifiClient.hpp src/player/AudioPlayer.hpp src/ui/MainWindow.hpp src/ui/TrackItemWidget.hpp src/ui/FavoriteCard.hpp src/ui/AlbumCard.hpp src/db/DatabaseManager.hpp src/net/DownloadManager.hpp src/ui/CreateAlbumDialog.hpp src/ui/ArtistProfilePage.hpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/main.cpp src/api/HifiClient.cpp src/player/AudioPlayer.cpp src/ui/MainWindow.cpp src/ui/TrackItemWidget.cpp src/ui/FavoriteCard.cpp src/ui/AlbumCard.cpp src/db/DatabaseManager.cpp src/net/DownloadManager.cpp src/ui/CreateAlbumDialog.cpp src/ui/ArtistProfilePage.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1070,9 +1076,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++1z -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_AlbumCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp moc_CreateAlbumDialog.cpp
+compiler_moc_header_make_all: moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_AlbumCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp moc_CreateAlbumDialog.cpp moc_ArtistProfilePage.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_AlbumCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp moc_CreateAlbumDialog.cpp
+	-$(DEL_FILE) moc_HifiClient.cpp moc_AudioPlayer.cpp moc_MainWindow.cpp moc_TrackItemWidget.cpp moc_FavoriteCard.cpp moc_AlbumCard.cpp moc_DatabaseManager.cpp moc_DownloadManager.cpp moc_CreateAlbumDialog.cpp moc_ArtistProfilePage.cpp
 moc_HifiClient.cpp: src/api/HifiClient.hpp \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
@@ -1089,6 +1095,7 @@ moc_MainWindow.cpp: src/ui/MainWindow.hpp \
 		src/net/DownloadManager.hpp \
 		src/player/AudioPlayer.hpp \
 		src/ui/AlbumCard.hpp \
+		src/ui/ArtistProfilePage.hpp \
 		src/ui/CreateAlbumDialog.hpp \
 		src/ui/FavoriteCard.hpp \
 		src/ui/TrackItemWidget.hpp \
@@ -1126,6 +1133,11 @@ moc_CreateAlbumDialog.cpp: src/ui/CreateAlbumDialog.hpp \
 		/usr/lib/qt6/moc
 	/usr/lib/qt6/moc $(DEFINES) --include /home/xi/dev/hellyeah/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/xi/dev/hellyeah -I/usr/include/qt6 -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtSql -I/usr/include/qt6/QtCore -I/usr/include/c++/15.2.1 -I/usr/include/c++/15.2.1/x86_64-pc-linux-gnu -I/usr/include/c++/15.2.1/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include -I/usr/local/include -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include-fixed -I/usr/include src/ui/CreateAlbumDialog.hpp -o moc_CreateAlbumDialog.cpp
 
+moc_ArtistProfilePage.cpp: src/ui/ArtistProfilePage.hpp \
+		moc_predefs.h \
+		/usr/lib/qt6/moc
+	/usr/lib/qt6/moc $(DEFINES) --include /home/xi/dev/hellyeah/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/xi/dev/hellyeah -I/usr/include/qt6 -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtSql -I/usr/include/qt6/QtCore -I/usr/include/c++/15.2.1 -I/usr/include/c++/15.2.1/x86_64-pc-linux-gnu -I/usr/include/c++/15.2.1/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include -I/usr/local/include -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include-fixed -I/usr/include src/ui/ArtistProfilePage.hpp -o moc_ArtistProfilePage.cpp
+
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
 compiler_moc_source_make_all:
@@ -1148,6 +1160,7 @@ main.o: src/main.cpp src/ui/MainWindow.hpp \
 		src/net/DownloadManager.hpp \
 		src/player/AudioPlayer.hpp \
 		src/ui/AlbumCard.hpp \
+		src/ui/ArtistProfilePage.hpp \
 		src/ui/CreateAlbumDialog.hpp \
 		src/ui/FavoriteCard.hpp \
 		src/ui/TrackItemWidget.hpp
@@ -1166,6 +1179,7 @@ MainWindow.o: src/ui/MainWindow.cpp src/ui/MainWindow.hpp \
 		src/net/DownloadManager.hpp \
 		src/player/AudioPlayer.hpp \
 		src/ui/AlbumCard.hpp \
+		src/ui/ArtistProfilePage.hpp \
 		src/ui/CreateAlbumDialog.hpp \
 		src/ui/FavoriteCard.hpp \
 		src/ui/TrackItemWidget.hpp
@@ -1188,6 +1202,9 @@ DownloadManager.o: src/net/DownloadManager.cpp src/net/DownloadManager.hpp
 
 CreateAlbumDialog.o: src/ui/CreateAlbumDialog.cpp src/ui/CreateAlbumDialog.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o CreateAlbumDialog.o src/ui/CreateAlbumDialog.cpp
+
+ArtistProfilePage.o: src/ui/ArtistProfilePage.cpp src/ui/ArtistProfilePage.hpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ArtistProfilePage.o src/ui/ArtistProfilePage.cpp
 
 moc_HifiClient.o: moc_HifiClient.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_HifiClient.o moc_HifiClient.cpp
@@ -1215,6 +1232,9 @@ moc_DownloadManager.o: moc_DownloadManager.cpp
 
 moc_CreateAlbumDialog.o: moc_CreateAlbumDialog.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_CreateAlbumDialog.o moc_CreateAlbumDialog.cpp
+
+moc_ArtistProfilePage.o: moc_ArtistProfilePage.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_ArtistProfilePage.o moc_ArtistProfilePage.cpp
 
 ####### Install
 

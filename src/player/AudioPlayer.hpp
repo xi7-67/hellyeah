@@ -31,6 +31,7 @@ public:
 signals:
   void positionChanged(qint64 position);
   void durationChanged(qint64 duration);
+  void playbackFinished();
   void errorOccurred(const QString &message);
 
 private slots:
@@ -49,6 +50,7 @@ private:
   ma_sound *sound;
   bool isEngineInitialized;
   bool isSoundInitialized;
+  bool m_hasEmittedFinished;
   float m_volume; // Store volume
 
   void initMiniaudio();

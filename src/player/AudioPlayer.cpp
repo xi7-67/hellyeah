@@ -9,7 +9,7 @@
 AudioPlayer::AudioPlayer(QObject *parent)
     : QObject(parent), currentReply(nullptr), tempFile(nullptr),
       engine(nullptr), sound(nullptr), isEngineInitialized(false),
-      isSoundInitialized(false), m_volume(1.0f) {
+      isSoundInitialized(false), m_hasEmittedFinished(false), m_volume(1.0f) {
 
   manager = new QNetworkAccessManager(this);
   positionTimer = new QTimer(this);
@@ -114,6 +114,7 @@ void AudioPlayer::startPlayback(const QString &filePath) {
   }
 
   isSoundInitialized = true;
+  m_hasEmittedFinished = false;         // Reset flag
   ma_sound_set_volume(sound, m_volume); // Apply stored volume
   ma_sound_start(sound);
   positionTimer->start();
@@ -183,6 +184,7 @@ void AudioPlayer::seek(qint64 positionMs) {
     ma_sound_get_data_format(sound, NULL, NULL, &sampleRate, NULL, 0);
     ma_uint64 frameIndex = (positionMs * sampleRate) / 1000;
     ma_sound_seek_to_pcm_frame(sound, frameIndex);
+    m_hasEmittedFinished = false; // Reset flag on seek
     emit positionChanged(positionMs);
   }
 }
@@ -220,6 +222,11 @@ qint64 AudioPlayer::duration() const {
 void AudioPlayer::onPositionTimer() {
   if (isSoundInitialized && ma_sound_is_playing(sound)) {
     emit positionChanged(position());
+
+    if (ma_sound_at_end(sound) && !m_hasEmittedFinished) {
+      m_hasEmittedFinished = true;
+      emit playbackFinished();
+    }
   }
 }
 
